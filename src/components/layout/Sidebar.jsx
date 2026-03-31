@@ -44,10 +44,10 @@ export default function Sidebar() {
 
   return (
     <aside className="sidebar fixed left-0 top-0 h-full w-64 z-20 flex flex-col"
-      style={{ background: 'rgba(13,10,35,0.97)', borderRight: '1px solid rgba(109,40,217,0.18)' }}>
+      style={{ background: '#1a1a1a', borderRight: '1px solid rgba(239,68,68,0.18)' }}>
 
       {/* Logo */}
-      <div className="p-6" style={{ borderBottom: '1px solid rgba(109,40,217,0.18)' }}>
+      <div className="p-6" style={{ borderBottom: '1px solid rgba(239,68,68,0.18)' }}>
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl flex items-center justify-center"
             style={{ background: 'linear-gradient(135deg,#ec4899,#7c3aed)' }}>
@@ -70,7 +70,7 @@ export default function Sidebar() {
           </NavLink>
         ))}
 
-        <div className="my-3" style={{ borderTop: '1px solid rgba(109,40,217,0.15)' }} />
+        <div className="my-3" style={{ borderTop: '1px solid rgba(239,68,68,0.15)' }} />
 
         <NavLink to="/settings"
           className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
@@ -80,7 +80,7 @@ export default function Sidebar() {
       </nav>
 
       {/* User */}
-      <div className="p-4" style={{ borderTop: '1px solid rgba(109,40,217,0.15)' }}>
+      <div className="p-4" style={{ borderTop: '1px solid rgba(239,68,68,0.15)' }}>
         <div className="flex items-center gap-3 px-2 py-2">
           <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
             style={{ background: 'linear-gradient(135deg,#7c3aed,#06b6d4)' }}>A</div>
