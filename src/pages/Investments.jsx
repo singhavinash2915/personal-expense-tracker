@@ -53,56 +53,47 @@ export default function Investments() {
   const totalInvested   = totalMFInvested + totalSTInvested
   const totalGain       = totalPortfolio - totalInvested
 
-  // Fetch last closing / live prices from Yahoo Finance (works outside market hours too)
+  // Fetch last closing / live NSE prices via Yahoo Finance v8/chart + corsproxy.io
+  // Works both during and outside market hours (uses previousClose as fallback)
   async function handleRefresh() {
     if (!stocks.length) return
     setRefreshing(true)
     setRefreshError('')
 
-    const symbols = stocks.map(st => `${st.symbol}.NS`).join(',')
-    // Yahoo Finance returns last known price regardless of market hours
-    const yahooUrl = `https://query2.finance.yahoo.com/v7/finance/quote?symbols=${symbols}&fields=regularMarketPrice,symbol,regularMarketPreviousClose`
-
-    // Proxy options — corsproxy.io takes the URL directly (no url= param)
-    const attempts = [
-      () => fetch(yahooUrl, { signal: AbortSignal.timeout(6000) }),
-      () => fetch(`https://corsproxy.io/?${yahooUrl}`, { signal: AbortSignal.timeout(10000) }),
-      () => fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(yahooUrl)}`, { signal: AbortSignal.timeout(12000) }),
-      () => fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(yahooUrl)}`, { signal: AbortSignal.timeout(12000) }),
-    ]
-
-    let succeeded = false
-    for (const attempt of attempts) {
-      try {
-        const res = await attempt()
-        if (!res.ok) continue
-        const data = await res.json()
-        const results = data?.quoteResponse?.result || []
-        if (!results.length) continue
-
-        let updated = 0
-        results.forEach(q => {
-          const sym = q.symbol.replace('.NS', '').replace('.BO', '')
-          const st  = stocks.find(s => s.symbol === sym)
-          // Use live price, fall back to previous close if market is closed
-          const price = q.regularMarketPrice || q.regularMarketPreviousClose
-          if (st && price) {
-            dispatch({ type: 'UPDATE_STOCK', payload: { ...st, currentPrice: parseFloat(price.toFixed(2)) } })
-            updated++
-          }
-        })
-        if (updated > 0) {
-          setLastRefreshed(new Date())
-          succeeded = true
-          break
-        }
-      } catch {
-        // try next proxy
+    const fetchOne = async (st) => {
+      const chartUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${st.symbol}.NS?range=1d&interval=1d`
+      const proxies = [
+        `https://corsproxy.io/?${chartUrl}`,
+        `https://api.allorigins.win/get?url=${encodeURIComponent(chartUrl)}`,
+      ]
+      for (const proxy of proxies) {
+        try {
+          const res = await fetch(proxy, { signal: AbortSignal.timeout(12000) })
+          if (!res.ok) continue
+          const raw = await res.json()
+          // allorigins /get wraps body in {contents:"..."}; corsproxy returns directly
+          const body = raw?.contents ? JSON.parse(raw.contents) : raw
+          const meta = body?.chart?.result?.[0]?.meta
+          const price = meta?.regularMarketPrice || meta?.chartPreviousClose
+          if (price) return parseFloat(price.toFixed(2))
+        } catch { /* try next proxy */ }
       }
+      return null
     }
 
-    if (!succeeded) {
-      setRefreshError('Could not reach price API. Check your internet connection or update prices manually using ✏️.')
+    const results = await Promise.allSettled(stocks.map(st => fetchOne(st).then(price => ({ st, price }))))
+    let updated = 0
+    results.forEach(r => {
+      if (r.status === 'fulfilled' && r.value.price) {
+        dispatch({ type: 'UPDATE_STOCK', payload: { ...r.value.st, currentPrice: r.value.price } })
+        updated++
+      }
+    })
+
+    if (updated > 0) {
+      setLastRefreshed(new Date())
+    } else {
+      setRefreshError('Could not fetch prices. Update manually using ✏️.')
     }
     setRefreshing(false)
   }
