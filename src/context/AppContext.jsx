@@ -97,7 +97,17 @@ function reducer(state, action) {
     case 'SET_THEME':
       return { ...state, theme: action.payload }
     case 'CLEAR_ALL_DATA':
-      return { ...initialState, theme: state.theme, currency: state.currency }
+      return {
+        ...state,
+        transactions: [],
+        budgets: [],
+        creditCards: [],
+        subscriptions: [],
+        mutualFunds: [],
+        stocks: [],
+        accounts: [],
+        categories: DEFAULT_CATEGORIES,
+      }
     case 'IMPORT_DATA':
       return { ...state, transactions: action.payload }
 
