@@ -53,22 +53,22 @@ export default function Investments() {
   const totalInvested   = totalMFInvested + totalSTInvested
   const totalGain       = totalPortfolio - totalInvested
 
-  // Fetch real NSE prices from Yahoo Finance
+  // Fetch last closing / live prices from Yahoo Finance (works outside market hours too)
   async function handleRefresh() {
     if (!stocks.length) return
     setRefreshing(true)
     setRefreshError('')
 
     const symbols = stocks.map(st => `${st.symbol}.NS`).join(',')
-    const yahooUrl = `https://query2.finance.yahoo.com/v7/finance/quote?symbols=${symbols}&fields=regularMarketPrice,symbol`
+    // Yahoo Finance returns last known price regardless of market hours
+    const yahooUrl = `https://query2.finance.yahoo.com/v7/finance/quote?symbols=${symbols}&fields=regularMarketPrice,symbol,regularMarketPreviousClose`
 
+    // Proxy options — corsproxy.io takes the URL directly (no url= param)
     const attempts = [
-      // Direct call (works in some environments)
       () => fetch(yahooUrl, { signal: AbortSignal.timeout(6000) }),
-      // allorigins proxy — most reliable for Yahoo Finance
-      () => fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(yahooUrl)}`, { signal: AbortSignal.timeout(10000) }),
-      // corsproxy.io fallback
-      () => fetch(`https://corsproxy.io/?url=${encodeURIComponent(yahooUrl)}`, { signal: AbortSignal.timeout(10000) }),
+      () => fetch(`https://corsproxy.io/?${yahooUrl}`, { signal: AbortSignal.timeout(10000) }),
+      () => fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(yahooUrl)}`, { signal: AbortSignal.timeout(12000) }),
+      () => fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(yahooUrl)}`, { signal: AbortSignal.timeout(12000) }),
     ]
 
     let succeeded = false
@@ -84,8 +84,10 @@ export default function Investments() {
         results.forEach(q => {
           const sym = q.symbol.replace('.NS', '').replace('.BO', '')
           const st  = stocks.find(s => s.symbol === sym)
-          if (st && q.regularMarketPrice) {
-            dispatch({ type: 'UPDATE_STOCK', payload: { ...st, currentPrice: parseFloat(q.regularMarketPrice.toFixed(2)) } })
+          // Use live price, fall back to previous close if market is closed
+          const price = q.regularMarketPrice || q.regularMarketPreviousClose
+          if (st && price) {
+            dispatch({ type: 'UPDATE_STOCK', payload: { ...st, currentPrice: parseFloat(price.toFixed(2)) } })
             updated++
           }
         })
@@ -95,12 +97,12 @@ export default function Investments() {
           break
         }
       } catch {
-        // try next
+        // try next proxy
       }
     }
 
     if (!succeeded) {
-      setRefreshError('Live prices unavailable — NSE market may be closed or outside trading hours (9:15 AM – 3:30 PM IST). Use edit ✏️ to update manually.')
+      setRefreshError('Could not reach price API. Check your internet connection or update prices manually using ✏️.')
     }
     setRefreshing(false)
   }
