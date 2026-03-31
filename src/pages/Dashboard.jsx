@@ -27,6 +27,24 @@ export default function Dashboard() {
   const month = currentMonthYear()
   const { income, expenses, balance } = getMonthlyStats(month)
 
+  // Last month key
+  const prevDate = new Date(); prevDate.setDate(1); prevDate.setMonth(prevDate.getMonth() - 1)
+  const prevMonth = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}`
+  const { income: prevIncome, expenses: prevExpenses, balance: prevBalance } = getMonthlyStats(prevMonth)
+
+  function trendInfo(current, previous) {
+    if (previous === 0 && current === 0) return { text: 'No data yet', up: null }
+    if (previous === 0) return { text: 'New this month', up: true }
+    const pct = ((current - previous) / Math.abs(previous) * 100).toFixed(1)
+    return { text: `${pct > 0 ? '+' : ''}${pct}% from last month`, up: parseFloat(pct) >= 0 }
+  }
+  const balanceTrend  = trendInfo(balance, prevBalance)
+  const incomeTrend   = trendInfo(income, prevIncome)
+  const expenseTrend  = trendInfo(expenses, prevExpenses)
+  const prevSavings   = prevIncome > 0 ? (prevIncome - prevExpenses) / prevIncome * 100 : 0
+  const curSavings    = income > 0 ? (income - expenses) / income * 100 : 0
+  const savingsTrend  = trendInfo(curSavings, prevSavings)
+
   const monthlyData = useMemo(() => {
     const result = []
     for (let i = 5; i >= 0; i--) {
@@ -45,6 +63,7 @@ export default function Dashboard() {
   const savingsRate = income > 0 ? ((income - expenses) / income * 100).toFixed(1) : 0
   const budgets = getBudgetUsage(month)
 
+
   // Category spending breakdown
   const categorySpend = {}
   state.transactions
@@ -60,10 +79,10 @@ export default function Dashboard() {
     <div className="space-y-6">
       {/* Stat Cards */}
       <div className="grid grid-cols-4 gap-5">
-        <StatCard gradient="stat-1" icon="💰" label="Total Balance" value={formatINR(balance)} trend="+12.5% from last month" trendUp badge="This Month" />
-        <StatCard gradient="stat-2" icon="📈" label="Total Income"  value={formatINR(income)}   trend="+8.2% from last month"  trendUp badge="This Month" />
-        <StatCard gradient="stat-3" icon="📉" label="Total Expenses" value={formatINR(expenses)} trend="-3.1% from last month" trendUp={false} badge="This Month" />
-        <StatCard gradient="stat-4" icon="🏆" label="Savings Rate"  value={`${savingsRate}%`}   trend="+5.4% from last month"  trendUp badge="This Month" />
+        <StatCard gradient="stat-1" icon="💰" label="Total Balance"  value={formatINR(balance)}   trend={balanceTrend.text}  trendUp={balanceTrend.up}  badge="This Month" />
+        <StatCard gradient="stat-2" icon="📈" label="Total Income"   value={formatINR(income)}    trend={incomeTrend.text}   trendUp={incomeTrend.up}   badge="This Month" />
+        <StatCard gradient="stat-3" icon="📉" label="Total Expenses" value={formatINR(expenses)}  trend={expenseTrend.text}  trendUp={expenseTrend.up}  badge="This Month" />
+        <StatCard gradient="stat-4" icon="🏆" label="Savings Rate"   value={`${savingsRate}%`}    trend={savingsTrend.text}  trendUp={savingsTrend.up}  badge="This Month" />
       </div>
 
       {/* Charts Row */}
