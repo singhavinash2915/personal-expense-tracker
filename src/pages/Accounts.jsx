@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Plus, Trash2, Edit2, X, Landmark } from 'lucide-react'
+import { Plus, Trash2, Edit2, X, Landmark, Upload } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { formatINR, generateId } from '../lib/utils'
+import StatementUploadModal from '../components/ui/StatementUploadModal'
 
 const ACCOUNT_TYPES = ['savings', 'current', 'salary', 'wallet', 'cash', 'fd', 'nre', 'nro']
 
@@ -32,6 +33,7 @@ export default function Accounts() {
   const [editAcc, setEditAcc] = useState(null)
   const [form, setForm]       = useState(EMPTY_FORM)
   const [confirmDelete, setConfirmDelete] = useState(null)
+  const [uploadAcc, setUploadAcc] = useState(null)
 
   const totalBalance  = accounts.reduce((s, a) => s + a.balance, 0)
   const savingsTotal  = accounts.filter(a => ['savings','salary','nre','nro'].includes(a.type)).reduce((s,a) => s + a.balance, 0)
@@ -156,9 +158,13 @@ export default function Accounts() {
                   )}
 
                   <div className="flex gap-2">
+                    <button onClick={() => setUploadAcc(acc)}
+                      className="btn-primary flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold flex-shrink-0">
+                      <Upload className="w-3 h-3" /> Upload Statement
+                    </button>
                     <Link to="/transactions" state={{ accountId: acc.id }}
                       className="btn-ghost flex-1 py-2 rounded-xl text-xs flex items-center justify-center gap-1.5 text-center">
-                      View Transactions
+                      View
                     </Link>
                     <button onClick={() => openEdit(acc)}
                       className="btn-ghost px-3 py-2 rounded-xl text-xs flex items-center gap-1.5">
@@ -249,6 +255,9 @@ export default function Accounts() {
           </div>
         </div>
       )}
+
+      {/* Statement Upload Modal */}
+      {uploadAcc && <StatementUploadModal account={uploadAcc} onClose={() => setUploadAcc(null)} />}
 
       {/* Delete Confirm */}
       {confirmDelete && (

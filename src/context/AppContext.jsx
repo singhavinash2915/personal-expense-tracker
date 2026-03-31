@@ -110,6 +110,11 @@ function reducer(state, action) {
       }
     case 'IMPORT_DATA':
       return { ...state, transactions: action.payload }
+    case 'IMPORT_STATEMENT':
+      // Prepend imported transactions, skip duplicates by date+amount+description
+      const existing = new Set(state.transactions.map(t => `${t.date}|${t.amount}|${t.description}`))
+      const newTxs = action.payload.filter(t => !existing.has(`${t.date}|${t.amount}|${t.description}`))
+      return { ...state, transactions: [...newTxs, ...state.transactions] }
 
     default: return state
   }
