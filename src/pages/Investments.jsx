@@ -21,6 +21,8 @@ export default function Investments() {
   const [mfForm, setMFForm]   = useState(EMPTY_MF)
   const [stForm, setSTForm]   = useState(EMPTY_ST)
   const [refreshing, setRefreshing] = useState(false)
+  const [refreshError, setRefreshError] = useState('')
+  const [lastRefreshed, setLastRefreshed] = useState(null)
   const [confirmDelete, setConfirmDelete] = useState(null)
 
   // MF calculations
@@ -51,17 +53,56 @@ export default function Investments() {
   const totalInvested   = totalMFInvested + totalSTInvested
   const totalGain       = totalPortfolio - totalInvested
 
-  // Refresh stock prices (manual simulation with ±2% random change)
-  function handleRefresh() {
+  // Fetch real NSE prices from Yahoo Finance
+  async function handleRefresh() {
+    if (!stocks.length) return
     setRefreshing(true)
-    setTimeout(() => {
-      stocks.forEach(st => {
-        const change = (Math.random() - 0.45) * 0.04  // slight upward bias
-        const newPrice = parseFloat((st.currentPrice * (1 + change)).toFixed(2))
-        dispatch({ type: 'UPDATE_STOCK', payload: { ...st, currentPrice: newPrice } })
-      })
-      setRefreshing(false)
-    }, 1200)
+    setRefreshError('')
+
+    const symbols = stocks.map(st => `${st.symbol}.NS`).join(',')
+    const yahooUrl = `https://query2.finance.yahoo.com/v7/finance/quote?symbols=${symbols}&fields=regularMarketPrice,symbol`
+
+    const attempts = [
+      // Direct call (works in some environments)
+      () => fetch(yahooUrl, { signal: AbortSignal.timeout(6000) }),
+      // allorigins proxy — most reliable for Yahoo Finance
+      () => fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(yahooUrl)}`, { signal: AbortSignal.timeout(10000) }),
+      // corsproxy.io fallback
+      () => fetch(`https://corsproxy.io/?url=${encodeURIComponent(yahooUrl)}`, { signal: AbortSignal.timeout(10000) }),
+    ]
+
+    let succeeded = false
+    for (const attempt of attempts) {
+      try {
+        const res = await attempt()
+        if (!res.ok) continue
+        const data = await res.json()
+        const results = data?.quoteResponse?.result || []
+        if (!results.length) continue
+
+        let updated = 0
+        results.forEach(q => {
+          const sym = q.symbol.replace('.NS', '').replace('.BO', '')
+          const st  = stocks.find(s => s.symbol === sym)
+          if (st && q.regularMarketPrice) {
+            dispatch({ type: 'UPDATE_STOCK', payload: { ...st, currentPrice: parseFloat(q.regularMarketPrice.toFixed(2)) } })
+            updated++
+          }
+        })
+        if (updated > 0) {
+          setLastRefreshed(new Date())
+          succeeded = true
+          break
+        }
+      } catch {
+        // try next
+      }
+    }
+
+    if (!succeeded) {
+      setRefreshError('Live prices unavailable — NSE market may be closed or outside trading hours (9:15 AM – 3:30 PM IST). Use edit ✏️ to update manually.')
+    }
+    setRefreshing(false)
   }
 
   function openAddMF() { setMFForm(EMPTY_MF); setEditMF(null); setShowMFForm(true) }
@@ -136,11 +177,21 @@ export default function Investments() {
           </button>
         ))}
         {activeTab === 'stocks' && (
-          <button onClick={handleRefresh} disabled={refreshing}
-            className="btn-ghost flex items-center gap-2 px-4 py-2 rounded-xl text-sm ml-auto">
-            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-            {refreshing ? 'Refreshing...' : 'Refresh Prices'}
-          </button>
+          <div className="ml-auto flex items-center gap-3">
+            {lastRefreshed && !refreshError && (
+              <span className="text-xs" style={{ color: 'rgba(196,181,253,0.4)' }}>
+                Updated {lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+              </span>
+            )}
+            {refreshError && (
+              <span className="text-xs text-amber-400">{refreshError}</span>
+            )}
+            <button onClick={handleRefresh} disabled={refreshing}
+              className="btn-ghost flex items-center gap-2 px-4 py-2 rounded-xl text-sm">
+              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+              {refreshing ? 'Fetching live prices...' : 'Refresh NSE Prices'}
+            </button>
+          </div>
         )}
       </div>
 
