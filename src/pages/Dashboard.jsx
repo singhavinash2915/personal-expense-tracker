@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import { useApp } from '../context/AppContext'
@@ -7,15 +7,6 @@ import StatCard from '../components/ui/StatCard'
 import TransactionModal from '../components/ui/TransactionModal'
 
 const COLORS = ['#7c3aed','#06b6d4','#f59e0b','#e11d48','#10b981','#f97316']
-const MONTHS_LABELS = ['Oct','Nov','Dec','Jan','Feb','Mar']
-const MOCK_MONTHLY = [
-  { month:'Oct', income:85000, expense:42000 },
-  { month:'Nov', income:92000, expense:48000 },
-  { month:'Dec', income:88000, expense:55000 },
-  { month:'Jan', income:110000, expense:45000 },
-  { month:'Feb', income:125000, expense:52000 },
-  { month:'Mar', income:142500, expense:57000 },
-]
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null
@@ -35,6 +26,22 @@ export default function Dashboard() {
 
   const month = currentMonthYear()
   const { income, expenses, balance } = getMonthlyStats(month)
+
+  const monthlyData = useMemo(() => {
+    const result = []
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date()
+      d.setDate(1)
+      d.setMonth(d.getMonth() - i)
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+      const label = d.toLocaleString('default', { month: 'short' })
+      const monthTx = state.transactions.filter(t => t.date.startsWith(key))
+      const inc = monthTx.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)
+      const exp = monthTx.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
+      result.push({ month: label, income: inc, expense: exp })
+    }
+    return result
+  }, [state.transactions])
   const savingsRate = income > 0 ? ((income - expenses) / income * 100).toFixed(1) : 0
   const budgets = getBudgetUsage(month)
 
@@ -74,7 +81,7 @@ export default function Dashboard() {
             </div>
           </div>
           <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={MOCK_MONTHLY} barGap={4}>
+            <BarChart data={monthlyData} barGap={4}>
               <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: 'rgba(196,181,253,0.5)', fontSize: 12 }} />
               <YAxis hide />
               <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(124,58,237,0.06)' }} />

@@ -1,6 +1,32 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, Receipt, BarChart2, Wallet, CreditCard, RefreshCw, TrendingUp, Settings, Coins, Landmark } from 'lucide-react'
+import { LayoutDashboard, Receipt, BarChart2, Wallet, CreditCard, RefreshCw, TrendingUp, Settings, Landmark } from 'lucide-react'
 import { useApp } from '../../context/AppContext'
+
+function PiggyBankIcon() {
+  return (
+    <svg width="26" height="26" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+      {/* Body */}
+      <ellipse cx="13" cy="16" rx="9" ry="7.5" fill="white" fillOpacity="0.92"/>
+      {/* Ear */}
+      <ellipse cx="7" cy="10" rx="2.5" ry="2" fill="white" fillOpacity="0.85"/>
+      {/* Snout */}
+      <ellipse cx="21" cy="17" rx="2.8" ry="2.2" fill="white" fillOpacity="0.78"/>
+      {/* Nostrils */}
+      <circle cx="20.2" cy="17" r="0.5" fill="rgba(236,72,153,0.75)"/>
+      <circle cx="21.8" cy="17" r="0.5" fill="rgba(236,72,153,0.75)"/>
+      {/* Eye */}
+      <circle cx="16.5" cy="13" r="0.9" fill="rgba(30,27,75,0.65)"/>
+      {/* Coin slot */}
+      <rect x="10" y="8.5" width="5" height="1.2" rx="0.6" fill="rgba(124,58,237,0.55)"/>
+      {/* ₹ on coin slot */}
+      <text x="11.2" y="8" fontSize="5.5" fontWeight="bold" fill="white" fillOpacity="0.95" fontFamily="sans-serif">₹</text>
+      {/* Legs */}
+      <rect x="8.5"  cy="22" width="2.2" height="3" rx="1.1" fill="white" fillOpacity="0.82" y="22"/>
+      <rect x="12.5" cy="22" width="2.2" height="3" rx="1.1" fill="white" fillOpacity="0.82" y="22"/>
+      <rect x="16.5" cy="22" width="2.2" height="3" rx="1.1" fill="white" fillOpacity="0.82" y="22"/>
+    </svg>
+  )
+}
 
 const navItems = [
   { to: '/',              icon: LayoutDashboard, label: 'Dashboard'     },
@@ -23,9 +49,9 @@ export default function Sidebar() {
       {/* Logo */}
       <div className="p-6" style={{ borderBottom: '1px solid rgba(109,40,217,0.18)' }}>
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-glow-violet"
-            style={{ background: 'linear-gradient(135deg,#7c3aed,#06b6d4)' }}>
-            <Coins className="w-5 h-5 text-white" />
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center"
+            style={{ background: 'linear-gradient(135deg,#ec4899,#7c3aed)' }}>
+            <PiggyBankIcon />
           </div>
           <div>
             <h1 className="text-lg font-extrabold gradient-text">ExpenseFlow</h1>
