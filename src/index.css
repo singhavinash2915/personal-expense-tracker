@@ -158,20 +158,55 @@
   @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
   .animate-slide-in { animation: slideIn 0.3s cubic-bezier(.16,1,.3,1); }
 
-  /* Light mode */
-  html.light body { background: #f5f0ff; color: #1e1040; }
+  /* ── Light mode – "Daylight Indigo" ── */
+  html.light body { background: #eef2ff; color: #1e1b4b; }
   html.light body::before {
     background:
-      radial-gradient(ellipse 80% 60% at 10% 0%, rgba(124,58,237,0.07) 0%, transparent 60%),
-      radial-gradient(ellipse 60% 50% at 90% 10%, rgba(6,182,212,0.05) 0%, transparent 55%);
+      radial-gradient(ellipse 70% 55% at 8% 0%,   rgba(79,70,229,0.14)  0%, transparent 55%),
+      radial-gradient(ellipse 55% 45% at 95% 8%,  rgba(236,72,153,0.10) 0%, transparent 52%),
+      radial-gradient(ellipse 45% 40% at 50% 100%,rgba(139,92,246,0.09) 0%, transparent 55%),
+      linear-gradient(160deg, #eef2ff 0%, #f5f3ff 55%, #fdf4ff 100%);
   }
-  html.light .glass { background: rgba(255,255,255,0.85); border-color: rgba(139,92,246,0.15); }
-  html.light .card  { background: white; border-color: rgba(139,92,246,0.1); }
-  html.light .input-field { background: #f9f5ff; border-color: rgba(139,92,246,0.2); color: #1e1040; }
-  html.light .nav-item { color: rgba(109,40,217,0.55); }
-  html.light .nav-item:hover { background: rgba(139,92,246,0.08); color: #6d28d9; }
-  html.light .nav-item.active { color: #6d28d9; }
-  html.light .sidebar { background: rgba(255,255,255,0.97); border-color: rgba(139,92,246,0.12); }
-  html.light .tr-hover:hover { background: rgba(124,58,237,0.04); }
-  html.light .progress-track { background: rgba(109,40,217,0.08); }
+  html.light .glass {
+    background: rgba(255,255,255,0.92);
+    border-color: rgba(79,70,229,0.12);
+    box-shadow: 0 2px 16px rgba(79,70,229,0.08);
+  }
+  html.light .card {
+    background: white;
+    border-color: rgba(79,70,229,0.1);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 8px 24px rgba(79,70,229,0.07);
+  }
+  html.light .hover-lift:hover { box-shadow: 0 12px 32px rgba(79,70,229,0.15); }
+  html.light .input-field { background: #f5f3ff; border-color: rgba(79,70,229,0.2); color: #1e1b4b; }
+  html.light .input-field::placeholder { color: rgba(79,70,229,0.35); }
+  html.light .input-field:focus { border-color: #4f46e5; box-shadow: 0 0 0 3px rgba(79,70,229,0.1); }
+  html.light select.input-field option { background: white; color: #1e1b4b; }
+  /* Sidebar stays dark for strong contrast */
+  html.light .sidebar {
+    background: linear-gradient(180deg, #1e1b4b 0%, #312e81 55%, #4c1d95 100%);
+    border-color: transparent;
+    box-shadow: 2px 0 20px rgba(30,27,75,0.12);
+  }
+  html.light .nav-item { color: rgba(196,181,253,0.65); }
+  html.light .nav-item:hover { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.9); }
+  html.light .nav-item.active {
+    background: linear-gradient(90deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.05) 100%);
+    color: #ffffff;
+    border-right-color: #a78bfa;
+  }
+  html.light .btn-ghost { background: rgba(79,70,229,0.07); border-color: rgba(79,70,229,0.2); color: #4f46e5; }
+  html.light .btn-ghost:hover { background: rgba(79,70,229,0.13); }
+  html.light .badge-success { background: rgba(5,150,105,0.1);  color: #047857; }
+  html.light .badge-danger  { background: rgba(220,38,38,0.1);  color: #dc2626; }
+  html.light .badge-warn    { background: rgba(217,119,6,0.12); color: #b45309; }
+  html.light .badge-info    { background: rgba(6,182,212,0.1);  color: #0284c7; }
+  html.light .badge-violet  { background: rgba(124,58,237,0.1); color: #6d28d9; }
+  html.light .tr-hover:hover { background: rgba(79,70,229,0.035); }
+  html.light .progress-track { background: rgba(79,70,229,0.1); }
+  html.light ::-webkit-scrollbar-thumb { background: rgba(79,70,229,0.25); }
+  /* Fix faded dark-theme purple text so it reads clearly on light backgrounds */
+  html.light [style*="rgba(196,181,253"] { color: rgba(79,70,229,0.6) !important; }
+  html.light [style*="rgba(167,139,250"] { color: rgba(79,70,229,0.55) !important; }
+  html.light [style*="rgba(109,40,217"]  { color: rgba(79,70,229,0.5) !important; }
 }
