@@ -1,6 +1,9 @@
-import { Outlet, useLocation } from 'react-router-dom'
+import { useState } from 'react'
+import { Outlet, useLocation, NavLink } from 'react-router-dom'
+import { LayoutDashboard, Receipt, Landmark, BarChart2, Plus } from 'lucide-react'
 import Sidebar from './Sidebar'
 import Header from './Header'
+import TransactionModal from '../ui/TransactionModal'
 
 const pageMeta = {
   '/':              { title: 'Dashboard',     subtitle: "Welcome back, Avinash. Here's your financial overview." },
@@ -14,19 +17,98 @@ const pageMeta = {
   '/settings':      { title: 'Settings',      subtitle: 'Customize your experience and manage data.' },
 }
 
+const BOTTOM_NAV = [
+  { to: '/',             icon: LayoutDashboard, label: 'Home'     },
+  { to: '/transactions', icon: Receipt,         label: 'Txns'     },
+  { to: '/accounts',     icon: Landmark,        label: 'Accounts' },
+  { to: '/analytics',    icon: BarChart2,       label: 'Analytics'},
+]
+
 export default function Layout() {
   const { pathname } = useLocation()
   const meta = pageMeta[pathname] || { title: 'ExpenseFlow', subtitle: '' }
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const [showAddTx, setShowAddTx] = useState(false)
 
   return (
     <div className="flex min-h-screen">
-      <Sidebar />
-      <main className="flex-1 ml-64 flex flex-col min-h-screen">
-        <Header title={meta.title} subtitle={meta.subtitle} />
-        <div className="flex-1 p-8 page-enter">
+
+      {/* Desktop sidebar — hidden on mobile */}
+      <div className="hidden md:block">
+        <Sidebar />
+      </div>
+
+      {/* Mobile drawer overlay */}
+      {drawerOpen && (
+        <div className="fixed inset-0 z-40 md:hidden">
+          <div
+            className="absolute inset-0 bg-black/60"
+            style={{ backdropFilter: 'blur(4px)' }}
+            onClick={() => setDrawerOpen(false)}
+          />
+          <div className="absolute left-0 top-0 h-full w-64 z-50"
+            style={{ animation: 'slideInLeft 0.22s ease' }}>
+            <Sidebar onClose={() => setDrawerOpen(false)} />
+          </div>
+        </div>
+      )}
+
+      {/* Main content */}
+      <main className="flex-1 md:ml-64 flex flex-col min-h-screen pb-16 md:pb-0">
+        <Header
+          title={meta.title}
+          subtitle={meta.subtitle}
+          onMenuOpen={() => setDrawerOpen(true)}
+          onAddTx={() => setShowAddTx(true)}
+        />
+        <div className="flex-1 p-4 md:p-8 page-enter">
           <Outlet />
         </div>
       </main>
+
+      {/* Mobile bottom navigation bar */}
+      <nav
+        className="fixed bottom-0 left-0 right-0 z-30 md:hidden"
+        style={{
+          background: '#1a1a1a',
+          borderTop: '1px solid rgba(239,68,68,0.18)',
+          paddingBottom: 'env(safe-area-inset-bottom)',
+        }}
+      >
+        <div className="flex items-center h-14 px-1">
+          {BOTTOM_NAV.map(({ to, icon: Icon, label }) => (
+            <NavLink
+              key={to}
+              to={to}
+              end={to === '/'}
+              className={({ isActive }) =>
+                `flex flex-col items-center justify-center gap-0.5 flex-1 py-1 rounded-xl transition-all ${
+                  isActive ? 'text-red-400' : 'text-white/40'
+                }`
+              }
+            >
+              <Icon className="w-5 h-5" />
+              <span className="text-[9px] font-semibold">{label}</span>
+            </NavLink>
+          ))}
+
+          {/* Add button */}
+          <button
+            onClick={() => setShowAddTx(true)}
+            className="flex flex-col items-center justify-center gap-0.5 flex-1 py-1"
+          >
+            <div
+              className="w-9 h-9 rounded-full flex items-center justify-center shadow-lg"
+              style={{ background: 'linear-gradient(135deg,#e53935,#f59e0b)' }}
+            >
+              <Plus className="w-4 h-4 text-white" />
+            </div>
+            <span className="text-[9px] font-semibold text-white/40">Add</span>
+          </button>
+        </div>
+      </nav>
+
+      {showAddTx && <TransactionModal onClose={() => setShowAddTx(false)} />}
     </div>
   )
 }

@@ -39,7 +39,7 @@ const navItems = [
   { to: '/investments',   icon: TrendingUp,       label: 'Investments'  },
 ]
 
-export default function Sidebar() {
+export default function Sidebar({ onClose }) {
   const { state, dispatch } = useApp()
 
   return (
@@ -53,10 +53,18 @@ export default function Sidebar() {
             style={{ background: 'linear-gradient(135deg,#ec4899,#7c3aed)' }}>
             <PiggyBankIcon />
           </div>
-          <div>
+          <div className="flex-1 min-w-0">
             <h1 className="text-lg font-extrabold gradient-text">ExpenseFlow</h1>
             <p className="text-xs" style={{ color: 'rgba(167,139,250,0.5)' }}>Personal Finance</p>
           </div>
+          {/* Close button — only shown on mobile drawer */}
+          {onClose && (
+            <button onClick={onClose} className="btn-ghost p-1.5 rounded-lg flex-shrink-0">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
         </div>
       </div>
 

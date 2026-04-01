@@ -110,11 +110,27 @@ function reducer(state, action) {
       }
     case 'IMPORT_DATA':
       return { ...state, transactions: action.payload }
-    case 'IMPORT_STATEMENT':
+    case 'IMPORT_STATEMENT': {
       // Prepend imported transactions, skip duplicates by date+amount+description
       const existing = new Set(state.transactions.map(t => `${t.date}|${t.amount}|${t.description}`))
       const newTxs = action.payload.filter(t => !existing.has(`${t.date}|${t.amount}|${t.description}`))
       return { ...state, transactions: [...newTxs, ...state.transactions] }
+    }
+    case 'IMPORT_BACKUP': {
+      // Full restore from JSON backup — replaces all data
+      const d = action.payload
+      return {
+        ...state,
+        transactions:  Array.isArray(d.transactions)  ? d.transactions  : state.transactions,
+        accounts:      Array.isArray(d.accounts)      ? d.accounts      : state.accounts,
+        budgets:       Array.isArray(d.budgets)        ? d.budgets       : state.budgets,
+        creditCards:   Array.isArray(d.creditCards)   ? d.creditCards   : state.creditCards,
+        subscriptions: Array.isArray(d.subscriptions) ? d.subscriptions : state.subscriptions,
+        mutualFunds:   Array.isArray(d.mutualFunds)   ? d.mutualFunds   : state.mutualFunds,
+        stocks:        Array.isArray(d.stocks)        ? d.stocks        : state.stocks,
+        categories:    Array.isArray(d.categories)    ? d.categories    : state.categories,
+      }
+    }
 
     default: return state
   }

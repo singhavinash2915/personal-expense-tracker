@@ -47,7 +47,7 @@ export default function Transactions() {
   return (
     <div className="space-y-5">
       {/* Summary Bar */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-3 gap-3 md:gap-4">
         <div className="card p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-xl">📈</div>
           <div>

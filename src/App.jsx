@@ -1,6 +1,7 @@
 import { HashRouter, Routes, Route } from 'react-router-dom'
 import { AppProvider } from './context/AppContext'
 import Layout from './components/layout/Layout'
+import PWAInstallBanner from './components/ui/PWAInstallBanner'
 import Dashboard from './pages/Dashboard'
 import Transactions from './pages/Transactions'
 import Analytics from './pages/Analytics'
@@ -28,6 +29,7 @@ export default function App() {
             <Route path="settings" element={<Settings />} />
           </Route>
         </Routes>
+        <PWAInstallBanner />
       </HashRouter>
     </AppProvider>
   )

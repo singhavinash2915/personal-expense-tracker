@@ -78,7 +78,7 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       {/* Stat Cards */}
-      <div className="grid grid-cols-4 gap-5">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-5">
         <StatCard gradient="stat-1" icon="💰" label="Total Balance"  value={formatINR(balance)}   trend={balanceTrend.text}  trendUp={balanceTrend.up}  badge="This Month" />
         <StatCard gradient="stat-2" icon="📈" label="Total Income"   value={formatINR(income)}    trend={incomeTrend.text}   trendUp={incomeTrend.up}   badge="This Month" />
         <StatCard gradient="stat-3" icon="📉" label="Total Expenses" value={formatINR(expenses)}  trend={expenseTrend.text}  trendUp={expenseTrend.up}  badge="This Month" />
@@ -86,9 +86,9 @@ export default function Dashboard() {
       </div>
 
       {/* Charts Row */}
-      <div className="grid grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5">
         {/* Bar Chart */}
-        <div className="card col-span-2 p-6">
+        <div className="card md:col-span-2 p-4 md:p-6">
           <div className="flex items-center justify-between mb-5">
             <div>
               <h3 className="text-base font-semibold text-white">Monthly Overview</h3>
@@ -111,7 +111,7 @@ export default function Dashboard() {
         </div>
 
         {/* Pie Chart */}
-        <div className="card p-6">
+        <div className="card p-4 md:p-6">
           <h3 className="text-base font-semibold text-white mb-1">Spending by Category</h3>
           <p className="text-xs mb-4" style={{ color: 'rgba(196,181,253,0.5)' }}>This month</p>
           {pieData.length > 0 ? (
@@ -151,9 +151,9 @@ export default function Dashboard() {
       </div>
 
       {/* Transactions + Budgets */}
-      <div className="grid grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5">
         {/* Recent Transactions */}
-        <div className="card col-span-2 p-6">
+        <div className="card md:col-span-2 p-4 md:p-6">
           <div className="flex items-center justify-between mb-5">
             <h3 className="text-base font-semibold text-white">Recent Transactions</h3>
             <Link to="/transactions" className="text-xs text-cyan-400 hover:text-cyan-300 transition">View All →</Link>
@@ -185,7 +185,7 @@ export default function Dashboard() {
         </div>
 
         {/* Budget Progress */}
-        <div className="card p-6">
+        <div className="card p-4 md:p-6">
           <div className="flex items-center justify-between mb-5">
             <h3 className="text-base font-semibold text-white">Budget Progress</h3>
             <Link to="/budgets" className="text-xs text-cyan-400 hover:text-cyan-300 transition">Manage →</Link>

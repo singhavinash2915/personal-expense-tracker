@@ -13,6 +13,8 @@ export default function Settings() {
   const [catForm, setCatForm] = useState(EMPTY_CAT)
   const [confirmClear, setConfirmClear] = useState(false)
   const [importMsg, setImportMsg] = useState('')
+  const [backupMsg, setBackupMsg] = useState('')
+  const [confirmRestore, setConfirmRestore] = useState(null)  // holds parsed backup data
 
   function openAddCat() { setCatForm(EMPTY_CAT); setEditCat(null); setShowCatForm(true) }
   function openEditCat(cat) { setCatForm({ ...cat }); setEditCat(cat); setShowCatForm(true) }
@@ -25,6 +27,61 @@ export default function Settings() {
       dispatch({ type: 'ADD_CATEGORY', payload: { ...catForm, id: generateId() } })
     }
     setShowCatForm(false)
+  }
+
+  // ── JSON full backup / restore ───────────────────────────────────────────────
+  function exportJSON() {
+    const backup = {
+      version: '1.0',
+      exportedAt: new Date().toISOString(),
+      appName: 'ExpenseFlow',
+      transactions:  state.transactions,
+      accounts:      state.accounts,
+      budgets:       state.budgets,
+      creditCards:   state.creditCards,
+      subscriptions: state.subscriptions,
+      mutualFunds:   state.mutualFunds,
+      stocks:        state.stocks,
+      categories:    state.categories,
+    }
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' })
+    const url  = URL.createObjectURL(blob)
+    const a    = document.createElement('a')
+    const date = new Date().toISOString().split('T')[0]
+    a.href = url; a.download = `expenseflow-backup-${date}.json`; a.click()
+    URL.revokeObjectURL(url)
+    setBackupMsg('✅ Backup downloaded!')
+    setTimeout(() => setBackupMsg(''), 3000)
+  }
+
+  function importJSON(e) {
+    const file = e.target.files[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = ev => {
+      try {
+        const data = JSON.parse(ev.target.result)
+        if (!data.transactions || !data.accounts) {
+          setBackupMsg('❌ Invalid backup file — missing required fields.')
+          setTimeout(() => setBackupMsg(''), 4000)
+          return
+        }
+        // Ask for confirmation before overwriting
+        setConfirmRestore(data)
+      } catch {
+        setBackupMsg('❌ Could not read file. Make sure it is a valid ExpenseFlow backup.')
+        setTimeout(() => setBackupMsg(''), 4000)
+      }
+    }
+    reader.readAsText(file)
+    e.target.value = ''
+  }
+
+  function doRestore() {
+    dispatch({ type: 'IMPORT_BACKUP', payload: confirmRestore })
+    setConfirmRestore(null)
+    setBackupMsg('✅ Data restored successfully!')
+    setTimeout(() => setBackupMsg(''), 3000)
   }
 
   // CSV Export
@@ -134,31 +191,62 @@ export default function Settings() {
       {/* Data & Export Tab */}
       {activeTab === 'data' && (
         <div className="space-y-4">
-          {/* Export */}
-          <div className="card p-6">
+
+          {/* ── JSON Full Backup ── */}
+          <div className="card p-5 md:p-6" style={{ borderColor: 'rgba(245,158,11,0.25)' }}>
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-xl flex-shrink-0 flex items-center justify-center text-2xl"
+                style={{ background: 'rgba(245,158,11,0.12)' }}>💾</div>
+              <div className="flex-1 min-w-0">
+                <h4 className="text-base font-semibold text-white mb-0.5">Full Backup (JSON)</h4>
+                <p className="text-sm mb-3" style={{ color: 'rgba(196,181,253,0.55)' }}>
+                  Downloads <strong className="text-white">all your data</strong> — transactions, accounts, budgets, credit cards,
+                  subscriptions &amp; investments — as a single JSON file. Restore it on any device.
+                </p>
+                <div className="flex flex-wrap gap-3 items-center">
+                  <button onClick={exportJSON}
+                    className="btn-primary flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold">
+                    <Download className="w-4 h-4" /> Download Backup
+                  </button>
+                  <label className="btn-ghost flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold cursor-pointer">
+                    <Upload className="w-4 h-4" /> Restore from Backup
+                    <input type="file" accept=".json" onChange={importJSON} className="hidden" />
+                  </label>
+                </div>
+                {backupMsg && (
+                  <p className={`mt-3 text-sm font-semibold ${backupMsg.startsWith('✅') ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    {backupMsg}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* ── CSV (transactions only) ── */}
+          <div className="card p-5 md:p-6">
             <div className="flex items-start gap-4">
               <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center text-2xl flex-shrink-0">📤</div>
               <div className="flex-1">
-                <h4 className="text-base font-semibold text-white mb-1">Export Transactions</h4>
+                <h4 className="text-base font-semibold text-white mb-1">Export Transactions (CSV)</h4>
                 <p className="text-sm mb-4" style={{ color: 'rgba(196,181,253,0.5)' }}>
-                  Download all your transactions as a CSV file. Includes date, type, amount, category, description, and notes.
+                  Download transactions only as a CSV file — useful for spreadsheets or accountants.
                 </p>
-                <button onClick={exportCSV} className="btn-primary flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold">
+                <button onClick={exportCSV} className="btn-ghost flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold">
                   <Download className="w-4 h-4" /> Export CSV
                 </button>
               </div>
             </div>
           </div>
 
-          {/* Import */}
-          <div className="card p-6">
+          {/* ── CSV Import ── */}
+          <div className="card p-5 md:p-6">
             <div className="flex items-start gap-4">
               <div className="w-12 h-12 rounded-xl bg-cyan-500/10 flex items-center justify-center text-2xl flex-shrink-0">📥</div>
               <div className="flex-1">
-                <h4 className="text-base font-semibold text-white mb-1">Import Transactions</h4>
+                <h4 className="text-base font-semibold text-white mb-1">Import Transactions (CSV)</h4>
                 <p className="text-sm mb-4" style={{ color: 'rgba(196,181,253,0.5)' }}>
                   Import from CSV with columns: Date, Type, Amount, Category, Description, Notes.
-                  This will add imported transactions to your existing data.
+                  Adds to existing data without overwriting.
                 </p>
                 <label className="btn-ghost flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold cursor-pointer w-fit">
                   <Upload className="w-4 h-4" /> Import CSV
@@ -194,7 +282,7 @@ export default function Settings() {
           {/* Stats */}
           <div className="card p-5">
             <h4 className="text-sm font-semibold text-white mb-3">Data Summary</h4>
-            <div className="grid grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {[
                 { label: 'Transactions',  count: state.transactions.length  },
                 { label: 'Budgets',       count: state.budgets.length       },
@@ -299,6 +387,29 @@ export default function Settings() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Restore Backup Confirm */}
+      {confirmRestore && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(5,3,20,0.88)' }}>
+          <div className="card p-6 w-full max-w-sm text-center">
+            <p className="text-3xl mb-3">📂</p>
+            <p className="text-white font-semibold text-lg mb-2">Restore Backup?</p>
+            <p className="text-sm mb-1" style={{ color: 'rgba(196,181,253,0.6)' }}>
+              This will <strong className="text-white">replace all current data</strong> with the backup from:
+            </p>
+            <p className="text-xs font-mono text-amber-400 mb-2">
+              {new Date(confirmRestore.exportedAt).toLocaleString()}
+            </p>
+            <p className="text-xs mb-5" style={{ color: 'rgba(196,181,253,0.45)' }}>
+              {confirmRestore.transactions?.length ?? 0} transactions · {confirmRestore.accounts?.length ?? 0} accounts · {confirmRestore.budgets?.length ?? 0} budgets
+            </p>
+            <div className="flex gap-3">
+              <button onClick={() => setConfirmRestore(null)} className="btn-ghost flex-1 py-2.5 rounded-xl text-sm font-semibold">Cancel</button>
+              <button onClick={doRestore} className="btn-primary flex-1 py-2.5 rounded-xl text-sm font-semibold">Yes, Restore</button>
+            </div>
           </div>
         </div>
       )}
