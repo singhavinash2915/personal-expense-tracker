@@ -144,7 +144,7 @@ export default function Investments() {
   return (
     <div className="space-y-5">
       {/* Portfolio Summary */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         {[
           { label: 'Total Portfolio',  value: formatINR(totalPortfolio), icon: '💼', color: 'text-violet-300' },
           { label: 'Total Invested',   value: formatINR(totalInvested),  icon: '💰', color: 'text-cyan-400'   },
@@ -162,7 +162,7 @@ export default function Investments() {
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         {[{ id: 'mf', label: `Mutual Funds (${mfs.length})` }, { id: 'stocks', label: `Stocks (${stocks.length})` }].map(t => (
           <button key={t.id} onClick={() => setActiveTab(t.id)}
             className={`px-5 py-2 rounded-xl text-sm font-semibold transition-all ${activeTab === t.id ? 'btn-primary' : 'btn-ghost'}`}>
@@ -170,7 +170,7 @@ export default function Investments() {
           </button>
         ))}
         {activeTab === 'stocks' && (
-          <div className="ml-auto flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 md:ml-auto mt-1 md:mt-0">
             {lastRefreshed && !refreshError && (
               <span className="text-xs" style={{ color: 'rgba(196,181,253,0.4)' }}>
                 Updated {lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
@@ -180,9 +180,10 @@ export default function Investments() {
               <span className="text-xs text-amber-400">{refreshError}</span>
             )}
             <button onClick={handleRefresh} disabled={refreshing}
-              className="btn-ghost flex items-center gap-2 px-4 py-2 rounded-xl text-sm">
+              className="btn-ghost flex items-center gap-2 px-3 py-2 rounded-xl text-sm">
               <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-              {refreshing ? 'Fetching live prices...' : 'Refresh NSE Prices'}
+              <span className="hidden sm:inline">{refreshing ? 'Fetching live prices...' : 'Refresh NSE Prices'}</span>
+              <span className="sm:hidden">{refreshing ? 'Fetching...' : 'Refresh'}</span>
             </button>
           </div>
         )}
@@ -205,15 +206,15 @@ export default function Investments() {
           </div>
 
           {mfs.length === 0 ? (
-            <div className="card p-16 text-center">
+            <div className="card p-10 md:p-16 text-center">
               <p className="text-4xl mb-3">📊</p>
               <p className="text-white font-semibold mb-1">No mutual funds added</p>
               <p className="text-sm mb-5" style={{ color: 'rgba(196,181,253,0.5)' }}>Track your SIP investments here</p>
               <button onClick={openAddMF} className="btn-primary px-6 py-2 rounded-xl text-sm font-semibold">Add Fund</button>
             </div>
           ) : (
-            <div className="card overflow-hidden">
-              <table className="w-full">
+            <div className="card overflow-hidden overflow-x-auto">
+              <table className="w-full min-w-[700px]">
                 <thead>
                   <tr style={{ borderBottom: '1px solid rgba(109,40,217,0.2)' }}>
                     {['Fund', 'Category', 'Units', 'Avg NAV', 'Current NAV', 'Invested', 'Current Value', 'Gain/Loss', ''].map(h => (
@@ -267,15 +268,15 @@ export default function Investments() {
           </div>
 
           {stocks.length === 0 ? (
-            <div className="card p-16 text-center">
+            <div className="card p-10 md:p-16 text-center">
               <p className="text-4xl mb-3">📈</p>
               <p className="text-white font-semibold mb-1">No stocks added</p>
               <p className="text-sm mb-5" style={{ color: 'rgba(196,181,253,0.5)' }}>Add your NSE/BSE equity holdings</p>
               <button onClick={openAddST} className="btn-primary px-6 py-2 rounded-xl text-sm font-semibold">Add Stock</button>
             </div>
           ) : (
-            <div className="card overflow-hidden">
-              <table className="w-full">
+            <div className="card overflow-hidden overflow-x-auto">
+              <table className="w-full min-w-[760px]">
                 <thead>
                   <tr style={{ borderBottom: '1px solid rgba(109,40,217,0.2)' }}>
                     {['Symbol', 'Company', 'Exchange', 'Shares', 'Avg Cost', 'CMP', 'Invested', 'Current', 'Gain/Loss', ''].map(h => (
@@ -315,16 +316,16 @@ export default function Investments() {
 
       {/* MF Form */}
       {showMFForm && (
-        <div className="fixed inset-0 z-50 flex items-start justify-end" style={{ background: 'rgba(5,3,20,0.7)', backdropFilter: 'blur(6px)' }}>
-          <div className="relative h-full w-[480px] flex flex-col animate-slide-in overflow-y-auto"
+        <div className="fixed inset-0 z-50 flex items-end md:items-start justify-end" style={{ background: 'rgba(5,3,20,0.7)', backdropFilter: 'blur(6px)' }}>
+          <div className="relative w-full md:w-[480px] h-auto md:h-full max-h-[90vh] md:max-h-full flex flex-col animate-slide-in overflow-y-auto rounded-t-2xl md:rounded-none"
             style={{ background: 'rgba(13,10,35,0.98)', borderLeft: '1px solid rgba(109,40,217,0.2)' }}>
-            <div className="flex items-center justify-between p-8 pb-4">
+            <div className="flex items-center justify-between p-5 pb-4 md:p-8 md:pb-4">
               <h3 className="text-xl font-semibold text-white">{editMF ? 'Edit' : 'Add'} Mutual Fund</h3>
               <button onClick={() => setShowMFForm(false)} className="btn-ghost p-2 rounded-xl">
                 <X className="w-5 h-5 text-violet-300" />
               </button>
             </div>
-            <form onSubmit={handleMFSubmit} className="flex-1 px-8 pb-8 space-y-4">
+            <form onSubmit={handleMFSubmit} className="flex-1 px-5 pb-5 md:px-8 md:pb-8 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-violet-200 mb-1.5">Fund Name</label>
                 <input type="text" required placeholder="e.g., Mirae Asset Large Cap" value={mfForm.name}
@@ -358,16 +359,16 @@ export default function Investments() {
 
       {/* Stock Form */}
       {showSTForm && (
-        <div className="fixed inset-0 z-50 flex items-start justify-end" style={{ background: 'rgba(5,3,20,0.7)', backdropFilter: 'blur(6px)' }}>
-          <div className="relative h-full w-[480px] flex flex-col animate-slide-in overflow-y-auto"
+        <div className="fixed inset-0 z-50 flex items-end md:items-start justify-end" style={{ background: 'rgba(5,3,20,0.7)', backdropFilter: 'blur(6px)' }}>
+          <div className="relative w-full md:w-[480px] h-auto md:h-full max-h-[90vh] md:max-h-full flex flex-col animate-slide-in overflow-y-auto rounded-t-2xl md:rounded-none"
             style={{ background: 'rgba(13,10,35,0.98)', borderLeft: '1px solid rgba(109,40,217,0.2)' }}>
-            <div className="flex items-center justify-between p-8 pb-4">
+            <div className="flex items-center justify-between p-5 pb-4 md:p-8 md:pb-4">
               <h3 className="text-xl font-semibold text-white">{editST ? 'Edit' : 'Add'} Stock</h3>
               <button onClick={() => setShowSTForm(false)} className="btn-ghost p-2 rounded-xl">
                 <X className="w-5 h-5 text-violet-300" />
               </button>
             </div>
-            <form onSubmit={handleSTSubmit} className="flex-1 px-8 pb-8 space-y-4">
+            <form onSubmit={handleSTSubmit} className="flex-1 px-5 pb-5 md:px-8 md:pb-8 space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-violet-200 mb-1.5">Symbol</label>

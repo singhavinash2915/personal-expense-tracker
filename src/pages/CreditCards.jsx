@@ -54,7 +54,7 @@ export default function CreditCards() {
   return (
     <div className="space-y-5">
       {/* Summary */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
         {[
           { label: 'Total Credit Limit',  value: formatINR(totalLimit),       icon: '💳', color: 'text-violet-300' },
           { label: 'Total Outstanding',   value: formatINR(totalOutstanding),  icon: '📊', color: 'text-rose-400'   },
@@ -86,7 +86,7 @@ export default function CreditCards() {
           <button onClick={openAdd} className="btn-primary px-6 py-2 rounded-xl text-sm font-semibold">Add Card</button>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {cards.map(card => {
             const usePct = card.limit > 0 ? (card.outstanding / card.limit * 100) : 0
             const barColor = usePct >= 80 ? '#e11d48' : usePct >= 60 ? '#f59e0b' : '#7c3aed'
@@ -150,16 +150,16 @@ export default function CreditCards() {
 
       {/* Form Modal */}
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-start justify-end" style={{ background: 'rgba(5,3,20,0.7)', backdropFilter: 'blur(6px)' }}>
-          <div className="relative h-full w-[480px] flex flex-col animate-slide-in overflow-y-auto"
+        <div className="fixed inset-0 z-50 flex items-end md:items-start justify-end" style={{ background: 'rgba(5,3,20,0.7)', backdropFilter: 'blur(6px)' }}>
+          <div className="relative w-full md:w-[480px] h-auto md:h-full max-h-[90vh] md:max-h-full flex flex-col animate-slide-in overflow-y-auto rounded-t-2xl md:rounded-none"
             style={{ background: 'rgba(13,10,35,0.98)', borderLeft: '1px solid rgba(109,40,217,0.2)' }}>
-            <div className="flex items-center justify-between p-8 pb-4">
+            <div className="flex items-center justify-between p-5 pb-4 md:p-8 md:pb-4">
               <h3 className="text-xl font-semibold text-white">{editCard ? 'Edit' : 'Add'} Credit Card</h3>
               <button onClick={() => setShowForm(false)} className="btn-ghost p-2 rounded-xl">
                 <X className="w-5 h-5 text-violet-300" />
               </button>
             </div>
-            <form onSubmit={handleSubmit} className="flex-1 px-8 pb-8 space-y-4">
+            <form onSubmit={handleSubmit} className="flex-1 px-5 pb-5 md:px-8 md:pb-8 space-y-4">
               {[
                 { label: 'Card Name', key: 'name', placeholder: 'e.g., HDFC Regalia' },
                 { label: 'Bank', key: 'bank', placeholder: 'e.g., HDFC Bank' },

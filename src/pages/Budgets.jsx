@@ -44,7 +44,7 @@ export default function Budgets() {
   return (
     <div className="space-y-5">
       {/* Summary */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
         {[
           { label: 'Total Budgeted', value: formatINR(totalBudgeted), icon: '📋', color: 'text-violet-300' },
           { label: 'Total Spent',    value: formatINR(totalSpent),    icon: '💸', color: 'text-rose-400'   },
@@ -79,7 +79,7 @@ export default function Budgets() {
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {budgets.map(b => {
             const cat  = getCategory(b.categoryId)
             const over = b.percentage >= 100
@@ -145,7 +145,7 @@ export default function Budgets() {
       {/* Budget Form Modal */}
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(5,3,20,0.8)', backdropFilter: 'blur(4px)' }}>
-          <div className="card p-6 w-96">
+          <div className="card p-5 w-full max-w-sm mx-4">
             <div className="flex items-center justify-between mb-5">
               <h3 className="text-base font-semibold text-white">{editBudget ? 'Edit' : 'Add'} Budget</h3>
               <button onClick={() => setShowForm(false)} className="btn-ghost p-1.5 rounded-lg">

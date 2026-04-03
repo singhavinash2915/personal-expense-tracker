@@ -47,7 +47,7 @@ export default function Transactions() {
   return (
     <div className="space-y-5">
       {/* Summary Bar */}
-      <div className="grid grid-cols-3 gap-3 md:gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
         <div className="card p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-xl">📈</div>
           <div>
@@ -118,8 +118,8 @@ export default function Transactions() {
       </div>
 
       {/* Table */}
-      <div className="card overflow-hidden">
-        <table className="w-full">
+      <div className="card overflow-hidden overflow-x-auto">
+        <table className="w-full min-w-[640px]">
           <thead>
             <tr style={{ borderBottom: '1px solid rgba(109,40,217,0.2)' }}>
               {['Date', 'Description', 'Category', 'Account', 'Type', 'Amount', 'Actions'].map(h => (

@@ -86,7 +86,7 @@ export default function Analytics() {
       {activeTab === 'overview' && (
         <div className="space-y-5">
           {/* Monthly Income vs Expense Bar Chart */}
-          <div className="card p-6">
+          <div className="card p-4 md:p-6">
             <h3 className="text-base font-semibold text-white mb-1">Monthly Income vs Expenses</h3>
             <p className="text-xs mb-5" style={{ color: 'rgba(196,181,253,0.5)' }}>Last 6 months comparison</p>
             <ResponsiveContainer width="100%" height={260}>
@@ -135,7 +135,7 @@ export default function Analytics() {
       )}
 
       {activeTab === 'categories' && (
-        <div className="grid grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {/* Pie Chart */}
           <div className="card p-6">
             <h3 className="text-base font-semibold text-white mb-1">Expense Breakdown</h3>
@@ -213,7 +213,7 @@ export default function Analytics() {
           </div>
 
           {/* Quick Stats */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
             {[
               { label: 'Avg Monthly Income',  value: formatINR(monthlyData.length ? monthlyData.reduce((s,d)=>s+d.income,0)/monthlyData.length : 0), color: 'text-emerald-400' },
               { label: 'Avg Monthly Expense', value: formatINR(monthlyData.length ? monthlyData.reduce((s,d)=>s+d.expense,0)/monthlyData.length : 0), color: 'text-rose-400' },
