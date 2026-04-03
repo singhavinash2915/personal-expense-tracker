@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { Outlet, useLocation, NavLink } from 'react-router-dom'
-import { LayoutDashboard, Receipt, Landmark, BarChart2, Plus } from 'lucide-react'
+import { LayoutDashboard, Receipt, Landmark, BarChart2, Plus, ScanLine } from 'lucide-react'
 import Sidebar from './Sidebar'
 import Header from './Header'
 import TransactionModal from '../ui/TransactionModal'
+import ReceiptScanner from '../ui/ReceiptScanner'
 
 const pageMeta = {
   '/':              { title: 'Dashboard',     subtitle: "Welcome back, Avinash. Here's your financial overview." },
@@ -29,6 +30,7 @@ export default function Layout() {
   const meta = pageMeta[pathname] || { title: 'ExpenseFlow', subtitle: '' }
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [showAddTx, setShowAddTx] = useState(false)
+  const [showScanner, setShowScanner] = useState(false)
 
   return (
     <div className="flex min-h-screen">
@@ -92,6 +94,20 @@ export default function Layout() {
             </NavLink>
           ))}
 
+          {/* Scan button */}
+          <button
+            onClick={() => setShowScanner(true)}
+            className="flex flex-col items-center justify-center gap-0.5 flex-1 py-1"
+          >
+            <div
+              className="w-9 h-9 rounded-full flex items-center justify-center shadow-lg"
+              style={{ background: 'linear-gradient(135deg,#e53935,#f59e0b)' }}
+            >
+              <ScanLine className="w-4 h-4 text-white" />
+            </div>
+            <span className="text-[9px] font-semibold text-white/40">Scan</span>
+          </button>
+
           {/* Add button */}
           <button
             onClick={() => setShowAddTx(true)}
@@ -99,9 +115,9 @@ export default function Layout() {
           >
             <div
               className="w-9 h-9 rounded-full flex items-center justify-center shadow-lg"
-              style={{ background: 'linear-gradient(135deg,#e53935,#f59e0b)' }}
+              style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)' }}
             >
-              <Plus className="w-4 h-4 text-white" />
+              <Plus className="w-4 h-4 text-red-400" />
             </div>
             <span className="text-[9px] font-semibold text-white/40">Add</span>
           </button>
@@ -109,6 +125,7 @@ export default function Layout() {
       </nav>
 
       {showAddTx && <TransactionModal onClose={() => setShowAddTx(false)} />}
+      {showScanner && <ReceiptScanner onClose={() => setShowScanner(false)} />}
     </div>
   )
 }

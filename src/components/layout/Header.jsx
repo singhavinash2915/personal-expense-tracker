@@ -1,9 +1,11 @@
 import { useState } from 'react'
-import { Bell, Plus, Search, Menu } from 'lucide-react'
+import { Bell, Plus, Search, Menu, ScanLine } from 'lucide-react'
 import TransactionModal from '../ui/TransactionModal'
+import ReceiptScanner from '../ui/ReceiptScanner'
 
 export default function Header({ title, subtitle, onMenuOpen, onAddTx }) {
   const [showModal, setShowModal] = useState(false)
+  const [showScanner, setShowScanner] = useState(false)
   const [search, setSearch] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
 
@@ -49,6 +51,14 @@ export default function Header({ title, subtitle, onMenuOpen, onAddTx }) {
             <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-rose-500 rounded-full text-[9px] flex items-center justify-center text-white font-bold">3</span>
           </button>
 
+          {/* Scan Receipt button — desktop only */}
+          <button onClick={() => setShowScanner(true)}
+            className="hidden md:flex btn-ghost items-center gap-2 px-3 py-2 text-sm font-semibold rounded-xl"
+            style={{ border: '1px solid rgba(239,68,68,0.25)', color: 'rgba(252,165,165,0.9)' }}>
+            <ScanLine className="w-4 h-4" />
+            Scan
+          </button>
+
           {/* Add button — desktop only (mobile uses FAB in bottom nav) */}
           <button onClick={handleAdd}
             className="hidden md:flex btn-primary items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl">
@@ -73,6 +83,7 @@ export default function Header({ title, subtitle, onMenuOpen, onAddTx }) {
       )}
 
       {showModal && <TransactionModal onClose={() => setShowModal(false)} />}
+      {showScanner && <ReceiptScanner onClose={() => setShowScanner(false)} />}
     </>
   )
 }
