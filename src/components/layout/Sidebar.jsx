@@ -50,7 +50,7 @@ export default function Sidebar({ onClose }) {
       <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(239,68,68,0.18)' }}>
         <div className="flex items-center gap-3">
           <img
-            src="/pwa-192.png"
+            src={`${import.meta.env.BASE_URL}pwa-192.png`}
             alt="ExpenseFlow"
             className="w-10 h-10 rounded-xl object-cover flex-shrink-0"
           />

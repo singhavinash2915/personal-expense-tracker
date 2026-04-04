@@ -61,7 +61,7 @@ export default function PWAInstallBanner() {
         backdropFilter: 'blur(12px)',
       }}
     >
-      <img src="/logo.jpeg" alt="ExpenseFlow" className="w-10 h-10 rounded-xl object-cover flex-shrink-0" />
+      <img src={`${import.meta.env.BASE_URL}logo.jpeg`} alt="ExpenseFlow" className="w-10 h-10 rounded-xl object-cover flex-shrink-0" />
 
       <div className="flex-1 min-w-0">
         <p className="text-white font-semibold text-sm">Install ExpenseFlow</p>

@@ -25,7 +25,7 @@ export default function Header({ title, subtitle, onMenuOpen, onAddTx }) {
           </button>
           {/* Mobile: show logo icon + name */}
           <div className="md:hidden flex items-center gap-2 flex-shrink-0">
-            <img src="/pwa-192.png" alt="ExpenseFlow" className="w-8 h-8 rounded-lg object-cover" />
+            <img src={`${import.meta.env.BASE_URL}pwa-192.png`} alt="ExpenseFlow" className="w-8 h-8 rounded-lg object-cover" />
             <span className="text-sm font-extrabold leading-none" style={{ color: '#f97316' }}>Expense<span className="text-white">Flow</span></span>
           </div>
           {/* Desktop: show page title */}
