@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Plus, Trash2, Edit2, X, Download, Upload, Moon, Sun } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Plus, Trash2, Edit2, X, Download, Upload, Moon, Sun, Shield } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { generateId } from '../lib/utils'
 
@@ -413,6 +414,21 @@ export default function Settings() {
           </div>
         </div>
       )}
+
+      {/* App Info footer */}
+      <div className="card p-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <img src={`${import.meta.env.BASE_URL}pwa-192.png`} alt="ExpenseFlow" className="w-8 h-8 rounded-lg object-cover" />
+          <div>
+            <p className="text-sm font-semibold text-white">ExpenseFlow</p>
+            <p className="text-xs" style={{ color: 'rgba(196,181,253,0.4)' }}>Version 1.0.0 · All data stored on your device</p>
+          </div>
+        </div>
+        <Link to="/privacy" className="flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-xl btn-ghost"
+          style={{ color: 'rgba(196,181,253,0.6)' }}>
+          <Shield className="w-3.5 h-3.5" /> Privacy Policy
+        </Link>
+      </div>
 
       {/* Clear Data Confirm */}
       {confirmClear && (

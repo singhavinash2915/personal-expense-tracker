@@ -12,6 +12,14 @@ dist
 dist-ssr
 *.local
 
+# Capacitor native build outputs (keep source, exclude build artifacts)
+android/.gradle
+android/app/build
+android/build
+ios/App/Pods
+ios/App/App.xcworkspace/xcuserdata
+*.xcuserstate
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

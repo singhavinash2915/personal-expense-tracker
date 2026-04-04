@@ -16,6 +16,7 @@ const pageMeta = {
   '/subscriptions': { title: 'Subscriptions', subtitle: 'Track your recurring monthly subscriptions.' },
   '/investments':   { title: 'Investments',   subtitle: 'Track your mutual funds and equity portfolio.' },
   '/settings':      { title: 'Settings',      subtitle: 'Customize your experience and manage data.' },
+  '/privacy':       { title: 'Privacy Policy', subtitle: 'How we handle your data.' },
 }
 
 const BOTTOM_NAV = [

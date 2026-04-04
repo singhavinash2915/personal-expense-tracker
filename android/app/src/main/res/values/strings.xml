@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">ExpenseFlow</string>
+    <string name="title_activity_main">ExpenseFlow</string>
+    <string name="package_name">com.avinash.expenseflow</string>
+    <string name="custom_url_scheme">com.avinash.expenseflow</string>
+</resources>

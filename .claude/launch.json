@@ -2,10 +2,9 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "expense-tracker-app",
+      "name": "expense-tracker",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
-      "cwd": "/Users/avinashsingh/Documents/expense-tracker-app",
       "port": 5173
     }
   ]

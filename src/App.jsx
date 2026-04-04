@@ -11,6 +11,7 @@ import CreditCards from './pages/CreditCards'
 import Subscriptions from './pages/Subscriptions'
 import Investments from './pages/Investments'
 import Settings from './pages/Settings'
+import PrivacyPolicy from './pages/PrivacyPolicy'
 
 export default function App() {
   return (
@@ -27,6 +28,7 @@ export default function App() {
             <Route path="subscriptions" element={<Subscriptions />} />
             <Route path="investments" element={<Investments />} />
             <Route path="settings" element={<Settings />} />
+            <Route path="privacy" element={<PrivacyPolicy />} />
           </Route>
         </Routes>
         <PWAInstallBanner />
