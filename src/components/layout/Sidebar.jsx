@@ -47,14 +47,15 @@ export default function Sidebar({ onClose }) {
       style={{ background: '#1a1a1a', borderRight: '1px solid rgba(239,68,68,0.18)' }}>
 
       {/* Logo */}
-      <div className="p-6" style={{ borderBottom: '1px solid rgba(239,68,68,0.18)' }}>
+      <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(239,68,68,0.18)' }}>
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center"
-            style={{ background: 'linear-gradient(135deg,#ec4899,#7c3aed)' }}>
-            <PiggyBankIcon />
-          </div>
+          <img
+            src="/pwa-192.png"
+            alt="ExpenseFlow"
+            className="w-10 h-10 rounded-xl object-cover flex-shrink-0"
+          />
           <div className="flex-1 min-w-0">
-            <h1 className="text-lg font-extrabold gradient-text">ExpenseFlow</h1>
+            <h1 className="text-lg font-extrabold leading-tight" style={{ color: '#f97316' }}>Expense<span className="text-white">Flow</span></h1>
             <p className="text-xs" style={{ color: 'rgba(167,139,250,0.5)' }}>Personal Finance</p>
           </div>
           {/* Close button — only shown on mobile drawer */}

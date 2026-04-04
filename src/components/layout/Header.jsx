@@ -18,14 +18,20 @@ export default function Header({ title, subtitle, onMenuOpen, onAddTx }) {
     <>
       <header className="glass sticky top-0 z-10 px-4 md:px-8 py-3 md:py-4 flex items-center justify-between gap-3">
 
-        {/* Left: hamburger (mobile) + title */}
+        {/* Left: hamburger (mobile) + logo/title */}
         <div className="flex items-center gap-3 min-w-0">
           <button onClick={onMenuOpen} className="md:hidden btn-ghost p-2 rounded-xl flex-shrink-0">
             <Menu className="w-5 h-5" />
           </button>
-          <div className="min-w-0">
-            <h2 className="text-base md:text-xl font-semibold text-white truncate">{title}</h2>
-            <p className="text-xs hidden sm:block truncate" style={{ color: 'rgba(196,181,253,0.6)' }}>{subtitle}</p>
+          {/* Mobile: show logo icon + name */}
+          <div className="md:hidden flex items-center gap-2 flex-shrink-0">
+            <img src="/pwa-192.png" alt="ExpenseFlow" className="w-8 h-8 rounded-lg object-cover" />
+            <span className="text-sm font-extrabold leading-none" style={{ color: '#f97316' }}>Expense<span className="text-white">Flow</span></span>
+          </div>
+          {/* Desktop: show page title */}
+          <div className="min-w-0 hidden md:block">
+            <h2 className="text-xl font-semibold text-white truncate">{title}</h2>
+            <p className="text-xs truncate" style={{ color: 'rgba(196,181,253,0.6)' }}>{subtitle}</p>
           </div>
         </div>
 

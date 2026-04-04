@@ -11,7 +11,7 @@ export default defineConfig(({ command }) => {
       react(),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['favicon.svg', 'pwa-192.png', 'pwa-512.png'],
+        includeAssets: ['favicon.png', 'apple-touch-icon.png', 'logo.jpeg', 'pwa-192.png', 'pwa-512.png'],
         manifest: {
           name: 'ExpenseFlow – Personal Finance',
           short_name: 'ExpenseFlow',
