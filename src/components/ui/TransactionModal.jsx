@@ -7,12 +7,13 @@ const today = new Date().toISOString().split('T')[0]
 export default function TransactionModal({ onClose, existing }) {
   const { state, dispatch } = useApp()
   const [form, setForm] = useState(existing || {
-    type: 'expense', amount: '', description: '', categoryId: '', accountId: '', date: today, notes: ''
+    type: 'expense', amount: '', description: '', categoryId: '', accountId: '', toAccountId: '', date: today, notes: ''
   })
 
-  const expenseCategories = state.categories.filter(c => c.type === 'expense')
-  const incomeCategories  = state.categories.filter(c => c.type === 'income')
-  const cats = form.type === 'expense' ? expenseCategories : incomeCategories
+  const expenseCategories  = state.categories.filter(c => c.type === 'expense')
+  const incomeCategories   = state.categories.filter(c => c.type === 'income')
+  const transferCategories = state.categories.filter(c => c.type === 'transfer')
+  const cats = form.type === 'expense' ? expenseCategories : form.type === 'income' ? incomeCategories : transferCategories
   const accounts = state.accounts || []
 
   function handleSubmit(e) {
@@ -40,14 +41,16 @@ export default function TransactionModal({ onClose, existing }) {
         <form onSubmit={handleSubmit} className="flex-1 px-8 pb-8 space-y-5">
           {/* Type Toggle */}
           <div className="flex gap-2">
-            {['expense', 'income'].map(t => (
+            {['expense', 'income', 'transfer'].map(t => (
               <button key={t} type="button"
-                onClick={() => setForm(f => ({ ...f, type: t, categoryId: '' }))}
+                onClick={() => setForm(f => ({ ...f, type: t, categoryId: '', toAccountId: '' }))}
                 className={`flex-1 py-2.5 rounded-xl text-sm font-semibold capitalize transition-all ${
                   form.type === t
                     ? t === 'expense'
                       ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
-                      : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                      : t === 'income'
+                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                        : 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
                     : 'btn-ghost'
                 }`}>
                 {t}
@@ -99,7 +102,9 @@ export default function TransactionModal({ onClose, existing }) {
 
           {/* Account */}
           <div>
-            <label className="block text-sm font-medium text-violet-200 mb-1.5">Account</label>
+            <label className="block text-sm font-medium text-violet-200 mb-1.5">
+              {form.type === 'transfer' ? 'From Account' : 'Account'}
+            </label>
             <select value={form.accountId}
               onChange={e => setForm(f => ({ ...f, accountId: e.target.value }))}
               className="input-field">
@@ -109,6 +114,21 @@ export default function TransactionModal({ onClose, existing }) {
               ))}
             </select>
           </div>
+
+          {/* To Account — only for transfers */}
+          {form.type === 'transfer' && (
+            <div>
+              <label className="block text-sm font-medium text-violet-200 mb-1.5">To Account</label>
+              <select value={form.toAccountId}
+                onChange={e => setForm(f => ({ ...f, toAccountId: e.target.value }))}
+                className="input-field">
+                <option value="">Select destination account (optional)</option>
+                {accounts.map(a => (
+                  <option key={a.id} value={a.id}>{a.name} — {a.bank}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Notes */}
           <div>

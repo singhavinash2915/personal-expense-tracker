@@ -14,6 +14,12 @@ export const DEFAULT_CATEGORIES = [
   { id: 'i3',  name: 'Investment',    icon: '📈', color: '#a3e635', type: 'income'  },
   { id: 'i4',  name: 'Gift',          icon: '🎁', color: '#fb7185', type: 'income'  },
   { id: 'i5',  name: 'Other Income',  icon: '🏦', color: '#818cf8', type: 'income'  },
+  { id: 'tr1', name: 'SIP / Mutual Fund',   icon: '📊', color: '#06b6d4', type: 'transfer' },
+  { id: 'tr2', name: 'Stock Purchase',       icon: '📈', color: '#06b6d4', type: 'transfer' },
+  { id: 'tr3', name: 'Savings Transfer',     icon: '🏦', color: '#06b6d4', type: 'transfer' },
+  { id: 'tr4', name: 'FD / RD',             icon: '🔒', color: '#06b6d4', type: 'transfer' },
+  { id: 'tr5', name: 'Loan Payment',         icon: '💳', color: '#06b6d4', type: 'transfer' },
+  { id: 'tr6', name: 'Transfer to Account', icon: '↔️', color: '#06b6d4', type: 'transfer' },
 ]
 
 export const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']

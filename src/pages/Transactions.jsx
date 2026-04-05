@@ -5,7 +5,7 @@ import { useApp } from '../context/AppContext'
 import { formatINR, formatDate } from '../lib/utils'
 import TransactionModal from '../components/ui/TransactionModal'
 
-const TYPES = ['All', 'Income', 'Expense']
+const TYPES = ['All', 'Income', 'Expense', 'Transfer']
 
 export default function Transactions() {
   const { state, dispatch, getCategory } = useApp()
@@ -36,8 +36,9 @@ export default function Transactions() {
       })
   }, [state.transactions, search, typeFilter, catFilter, accFilter])
 
-  const totalIncome  = filtered.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)
-  const totalExpense = filtered.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
+  const totalIncome    = filtered.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)
+  const totalExpense   = filtered.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
+  const totalTransfer  = filtered.filter(t => t.type === 'transfer').reduce((s, t) => s + t.amount, 0)
 
   function handleDelete(id) {
     dispatch({ type: 'DELETE_TRANSACTION', payload: id })
@@ -47,7 +48,7 @@ export default function Transactions() {
   return (
     <div className="space-y-5">
       {/* Summary Bar */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         <div className="card p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-xl">📈</div>
           <div>
@@ -60,6 +61,13 @@ export default function Transactions() {
           <div>
             <p className="text-xs" style={{ color: 'rgba(196,181,253,0.5)' }}>Filtered Expenses</p>
             <p className="text-lg font-bold text-rose-400">{formatINR(totalExpense)}</p>
+          </div>
+        </div>
+        <div className="card p-4 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center text-xl">↔️</div>
+          <div>
+            <p className="text-xs" style={{ color: 'rgba(196,181,253,0.5)' }}>Transfers</p>
+            <p className="text-lg font-bold text-cyan-400">{formatINR(totalTransfer)}</p>
           </div>
         </div>
         <div className="card p-4 flex items-center gap-3">
@@ -139,6 +147,7 @@ export default function Transactions() {
                   <td className="px-5 py-3.5 text-sm" style={{ color: 'rgba(196,181,253,0.6)' }}>{formatDate(tx.date)}</td>
                   <td className="px-5 py-3.5">
                     <p className="text-sm font-medium text-white">{tx.description}</p>
+                    {tx.toAccountId && (() => { const toAcc = accounts.find(a => a.id === tx.toAccountId); return toAcc ? <p className="text-xs mt-0.5 text-cyan-400/70">→ {toAcc.name}</p> : null })()}
                     {tx.notes && <p className="text-xs mt-0.5 truncate max-w-[200px]" style={{ color: 'rgba(196,181,253,0.4)' }}>{tx.notes}</p>}
                   </td>
                   <td className="px-5 py-3.5">
@@ -154,10 +163,14 @@ export default function Transactions() {
                     )}
                   </td>
                   <td className="px-5 py-3.5">
-                    <span className={`badge-${tx.type === 'income' ? 'success' : 'danger'} capitalize`}>{tx.type}</span>
+                    {tx.type === 'transfer' ? (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 capitalize">{tx.type}</span>
+                    ) : (
+                      <span className={`badge-${tx.type === 'income' ? 'success' : 'danger'} capitalize`}>{tx.type}</span>
+                    )}
                   </td>
-                  <td className={`px-5 py-3.5 text-sm font-semibold ${tx.type === 'income' ? 'text-emerald-400' : 'text-rose-400'}`}>
-                    {tx.type === 'income' ? '+' : '-'}{formatINR(tx.amount)}
+                  <td className={`px-5 py-3.5 text-sm font-semibold ${tx.type === 'income' ? 'text-emerald-400' : tx.type === 'transfer' ? 'text-cyan-400' : 'text-rose-400'}`}>
+                    {tx.type === 'income' ? '+' : tx.type === 'transfer' ? '↔' : '-'}{formatINR(tx.amount)}
                   </td>
                   <td className="px-5 py-3.5">
                     <div className="flex gap-2">

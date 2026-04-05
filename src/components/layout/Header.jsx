@@ -3,12 +3,19 @@ import { Bell, Plus, Search, Menu, ScanLine } from 'lucide-react'
 import TransactionModal from '../ui/TransactionModal'
 import ReceiptScanner from '../ui/ReceiptScanner'
 import PrivacyToggle from '../ui/PrivacyToggle'
+import NotificationPanel from '../ui/NotificationPanel'
+import { generateNotifications } from '../../lib/notifications'
+import { useApp } from '../../context/AppContext'
 
 export default function Header({ title, subtitle, onMenuOpen, onAddTx }) {
   const [showModal, setShowModal] = useState(false)
   const [showScanner, setShowScanner] = useState(false)
   const [search, setSearch] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
+  const [notifOpen, setNotifOpen] = useState(false)
+
+  const { state } = useApp()
+  const notifications = generateNotifications(state)
 
   function handleAdd() {
     if (onAddTx) onAddTx()
@@ -55,10 +62,24 @@ export default function Header({ title, subtitle, onMenuOpen, onAddTx }) {
           <PrivacyToggle />
 
           {/* Bell */}
-          <button className="btn-ghost p-2 rounded-xl relative">
-            <Bell className="w-4 h-4 md:w-5 md:h-5" style={{ color: 'rgba(196,181,253,0.7)' }} />
-            <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-rose-500 rounded-full text-[9px] flex items-center justify-center text-white font-bold">3</span>
-          </button>
+          <div className="relative">
+            <button
+              onClick={() => setNotifOpen(n => !n)}
+              className="btn-ghost p-2 rounded-xl relative"
+            >
+              <Bell className="w-4 h-4 md:w-5 md:h-5" style={{ color: 'rgba(196,181,253,0.7)' }} />
+              {notifications.length > 0 && (
+                <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-rose-500 rounded-full text-[9px] flex items-center justify-center text-white font-bold">
+                  {notifications.length > 9 ? '9+' : notifications.length}
+                </span>
+              )}
+            </button>
+            <NotificationPanel
+              open={notifOpen}
+              onClose={() => setNotifOpen(false)}
+              notifications={notifications}
+            />
+          </div>
 
           {/* Scan Receipt button — desktop only */}
           <button onClick={() => setShowScanner(true)}

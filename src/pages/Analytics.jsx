@@ -30,7 +30,8 @@ export default function Analytics() {
     const m = getMonthYear(t.date)
     if (!monthlyMap[m]) monthlyMap[m] = { month: m, income: 0, expense: 0 }
     if (t.type === 'income') monthlyMap[m].income += t.amount
-    else monthlyMap[m].expense += t.amount
+    else if (t.type === 'expense') monthlyMap[m].expense += t.amount
+    // transfers are excluded from income/expense charts
   })
   const monthlyData = Object.values(monthlyMap)
     .sort((a, b) => a.month.localeCompare(b.month))
