@@ -2,9 +2,9 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "expense-tracker",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "name": "expense-tracker-app",
+      "runtimeExecutable": "/bin/sh",
+      "runtimeArgs": ["/Users/avinashsingh/Documents/expense-tracker-app/.claude/start-dev.sh"],
       "port": 5173
     }
   ]
