@@ -44,6 +44,10 @@ export default function Investments() {
   const [refreshError, setRefreshError] = useState('')
   const [lastRefreshed, setLastRefreshed] = useState(null)
   const [confirmDelete, setConfirmDelete] = useState(null)
+  const [autoRefresh, setAutoRefresh] = useState(true)
+  const [countdown, setCountdown] = useState(60)
+  const autoRefreshRef = useRef(null)
+  const countdownRef = useRef(null)
   const [toastMsg, setToastMsg] = useState('')
   const [navRefreshingId, setNavRefreshingId] = useState(null)
 
@@ -77,6 +81,39 @@ export default function Investments() {
     }, 350)
     return () => clearTimeout(nameDebounceRef.current)
   }, [mfForm.name])
+
+  // Stock auto-refresh every 60s (only when stocks tab is active and autoRefresh is on)
+  useEffect(() => {
+    if (activeTab !== 'stocks' || !autoRefresh || !stocks.length) {
+      clearInterval(autoRefreshRef.current)
+      clearInterval(countdownRef.current)
+      setCountdown(60)
+      return
+    }
+
+    // Kick off immediately
+    handleRefresh()
+
+    // Countdown ticker
+    setCountdown(60)
+    countdownRef.current = setInterval(() => {
+      setCountdown(c => {
+        if (c <= 1) return 60
+        return c - 1
+      })
+    }, 1000)
+
+    // Main refresh interval
+    autoRefreshRef.current = setInterval(() => {
+      handleRefresh()
+      setCountdown(60)
+    }, 60000)
+
+    return () => {
+      clearInterval(autoRefreshRef.current)
+      clearInterval(countdownRef.current)
+    }
+  }, [activeTab, autoRefresh, stocks.length]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // MF calculations
   const mfData = mfs.map(mf => {
@@ -325,19 +362,32 @@ export default function Investments() {
         ))}
         {activeTab === 'stocks' && (
           <div className="flex flex-wrap items-center gap-2 md:ml-auto mt-1 md:mt-0">
+            {/* Auto-refresh toggle */}
+            <button
+              onClick={() => setAutoRefresh(a => !a)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                autoRefresh
+                  ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                  : 'btn-ghost text-violet-300'
+              }`}
+              title={autoRefresh ? 'Auto-refresh ON — click to pause' : 'Auto-refresh OFF — click to enable'}
+            >
+              <span className={`w-1.5 h-1.5 rounded-full ${autoRefresh ? 'bg-emerald-400 animate-pulse' : 'bg-violet-400'}`} />
+              {autoRefresh ? `Auto · ${countdown}s` : 'Auto OFF'}
+            </button>
+
             {lastRefreshed && !refreshError && (
               <span className="text-xs" style={{ color: 'rgba(196,181,253,0.4)' }}>
-                Updated {lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                Updated {lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
               </span>
             )}
-            {refreshError && (
-              <span className="text-xs text-amber-400">{refreshError}</span>
-            )}
+            {refreshError && <span className="text-xs text-amber-400">{refreshError}</span>}
+
             <button onClick={handleRefresh} disabled={refreshing}
               className="btn-ghost flex items-center gap-2 px-3 py-2 rounded-xl text-sm">
               <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-              <span className="hidden sm:inline">{refreshing ? 'Fetching live prices...' : 'Refresh NSE Prices'}</span>
-              <span className="sm:hidden">{refreshing ? 'Fetching...' : 'Refresh'}</span>
+              <span className="hidden sm:inline">{refreshing ? 'Fetching...' : 'Refresh Now'}</span>
+              <span className="sm:hidden">{refreshing ? '...' : 'Now'}</span>
             </button>
           </div>
         )}

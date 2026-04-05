@@ -5,6 +5,7 @@ import Sidebar from './Sidebar'
 import Header from './Header'
 import TransactionModal from '../ui/TransactionModal'
 import ReceiptScanner from '../ui/ReceiptScanner'
+import { useNAVScheduler } from '../../hooks/useNAVScheduler'
 
 const pageMeta = {
   '/':              { title: 'Dashboard',     subtitle: "Welcome back, Avinash. Here's your financial overview." },
@@ -33,6 +34,9 @@ export default function Layout() {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [showAddTx, setShowAddTx] = useState(false)
   const [showScanner, setShowScanner] = useState(false)
+
+  // Auto-refresh MF NAVs daily at 9 PM IST
+  useNAVScheduler()
 
   return (
     <div className="flex min-h-screen">
