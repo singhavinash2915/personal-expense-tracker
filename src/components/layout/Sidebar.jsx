@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, Receipt, BarChart2, Wallet, CreditCard, RefreshCw, TrendingUp, Settings, Landmark } from 'lucide-react'
+import { LayoutDashboard, Receipt, BarChart2, Wallet, CreditCard, RefreshCw, TrendingUp, Settings, Landmark, HeartPulse } from 'lucide-react'
 import { useApp } from '../../context/AppContext'
 
 function PiggyBankIcon() {
@@ -37,6 +37,7 @@ const navItems = [
   { to: '/credit',        icon: CreditCard,       label: 'Credit Cards' },
   { to: '/subscriptions', icon: RefreshCw,        label: 'Subscriptions'},
   { to: '/investments',   icon: TrendingUp,       label: 'Investments'  },
+  { to: '/health',        icon: HeartPulse,       label: 'Health Score' },
 ]
 
 export default function Sidebar({ onClose }) {

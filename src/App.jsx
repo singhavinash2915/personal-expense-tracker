@@ -12,6 +12,7 @@ import Subscriptions from './pages/Subscriptions'
 import Investments from './pages/Investments'
 import Settings from './pages/Settings'
 import PrivacyPolicy from './pages/PrivacyPolicy'
+import HealthScore from './pages/HealthScore'
 
 export default function App() {
   return (
@@ -29,6 +30,7 @@ export default function App() {
             <Route path="investments" element={<Investments />} />
             <Route path="settings" element={<Settings />} />
             <Route path="privacy" element={<PrivacyPolicy />} />
+            <Route path="health" element={<HealthScore />} />
           </Route>
         </Routes>
         <PWAInstallBanner />

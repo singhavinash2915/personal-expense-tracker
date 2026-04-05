@@ -25,6 +25,7 @@ const initialState = {
   accounts:      loadFromStorage('ef_accounts',      SAMPLE_ACCOUNTS),
   theme:         loadFromStorage('ef_theme',         'dark'),
   currency:      loadFromStorage('ef_currency',      'INR'),
+  privacyMode:   false,
 }
 
 function reducer(state, action) {
@@ -76,6 +77,15 @@ function reducer(state, action) {
       return { ...state, mutualFunds: state.mutualFunds.map(m => m.id === action.payload.id ? action.payload : m) }
     case 'DELETE_MUTUAL_FUND':
       return { ...state, mutualFunds: state.mutualFunds.filter(m => m.id !== action.payload) }
+    case 'UPDATE_INVESTMENT_NAV':
+      return {
+        ...state,
+        mutualFunds: state.mutualFunds.map(inv =>
+          inv.id === action.payload.id
+            ? { ...inv, currentNav: action.payload.nav, navDate: action.payload.date, lastNavUpdate: new Date().toISOString() }
+            : inv
+        )
+      }
 
     // Stocks
     case 'ADD_STOCK':
@@ -96,6 +106,8 @@ function reducer(state, action) {
     // Settings
     case 'SET_THEME':
       return { ...state, theme: action.payload }
+    case 'TOGGLE_PRIVACY':
+      return { ...state, privacyMode: !state.privacyMode }
     case 'CLEAR_ALL_DATA':
       return {
         ...state,

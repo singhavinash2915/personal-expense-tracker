@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Plus, Trash2, Edit2, X, Landmark, Upload } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { formatINR, generateId } from '../lib/utils'
+import { privateValue } from '../lib/privacy'
 import StatementUploadModal from '../components/ui/StatementUploadModal'
 
 const ACCOUNT_TYPES = ['savings', 'current', 'salary', 'wallet', 'cash', 'fd', 'nre', 'nro']
@@ -29,6 +30,7 @@ const EMPTY_FORM = {
 export default function Accounts() {
   const { state, dispatch } = useApp()
   const accounts = state.accounts || []
+  const privacyMode = state.privacyMode
   const [showForm, setShowForm] = useState(false)
   const [editAcc, setEditAcc] = useState(null)
   const [form, setForm]       = useState(EMPTY_FORM)
@@ -70,10 +72,10 @@ export default function Accounts() {
       {/* Summary */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         {[
-          { label: 'Net Worth',       value: formatINR(totalBalance),  icon: '💰', color: 'text-violet-300' },
-          { label: 'Savings/Salary',  value: formatINR(savingsTotal),  icon: '🏦', color: 'text-cyan-400'   },
-          { label: 'Current/Business',value: formatINR(currentTotal),  icon: '🏢', color: 'text-amber-400'  },
-          { label: 'Wallet & Cash',   value: formatINR(walletTotal),   icon: '👛', color: 'text-emerald-400'},
+          { label: 'Net Worth',       value: privateValue(totalBalance, privacyMode, formatINR),  icon: '💰', color: 'text-violet-300' },
+          { label: 'Savings/Salary',  value: privateValue(savingsTotal, privacyMode, formatINR),  icon: '🏦', color: 'text-cyan-400'   },
+          { label: 'Current/Business',value: privateValue(currentTotal, privacyMode, formatINR),  icon: '🏢', color: 'text-amber-400'  },
+          { label: 'Wallet & Cash',   value: privateValue(walletTotal,  privacyMode, formatINR),  icon: '👛', color: 'text-emerald-400'},
         ].map(({ label, value, icon, color }) => (
           <div key={label} className="card p-4 flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-violet-500/10 flex items-center justify-center text-xl">{icon}</div>
@@ -128,7 +130,7 @@ export default function Accounts() {
                   <div className="flex items-end justify-between">
                     <div>
                       <p className="text-xs text-white/50">Available Balance</p>
-                      <p className="text-2xl font-bold text-white">{formatINR(acc.balance)}</p>
+                      <p className="text-2xl font-bold text-white">{privateValue(acc.balance, privacyMode, formatINR)}</p>
                     </div>
                     <span className="text-xs font-medium text-white/60 bg-white/10 px-2.5 py-1 rounded-full capitalize">{acc.type}</span>
                   </div>
@@ -143,11 +145,11 @@ export default function Accounts() {
                     </div>
                     <div className="text-center p-2 rounded-lg" style={{ background: 'rgba(5,150,105,0.08)' }}>
                       <p style={{ color: 'rgba(196,181,253,0.5)' }}>Income</p>
-                      <p className="font-bold text-emerald-400 mt-0.5">{formatINR(stats.income)}</p>
+                      <p className="font-bold text-emerald-400 mt-0.5">{privateValue(stats.income, privacyMode, formatINR)}</p>
                     </div>
                     <div className="text-center p-2 rounded-lg" style={{ background: 'rgba(225,29,72,0.08)' }}>
                       <p style={{ color: 'rgba(196,181,253,0.5)' }}>Expenses</p>
-                      <p className="font-bold text-rose-400 mt-0.5">{formatINR(stats.expense)}</p>
+                      <p className="font-bold text-rose-400 mt-0.5">{privateValue(stats.expense, privacyMode, formatINR)}</p>
                     </div>
                   </div>
 

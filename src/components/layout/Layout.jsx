@@ -17,6 +17,7 @@ const pageMeta = {
   '/investments':   { title: 'Investments',   subtitle: 'Track your mutual funds and equity portfolio.' },
   '/settings':      { title: 'Settings',      subtitle: 'Customize your experience and manage data.' },
   '/privacy':       { title: 'Privacy Policy', subtitle: 'How we handle your data.' },
+  '/health':        { title: 'Health Score',   subtitle: 'How financially healthy are you?' },
 }
 
 const BOTTOM_NAV = [

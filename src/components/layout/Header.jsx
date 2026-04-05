@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Bell, Plus, Search, Menu, ScanLine } from 'lucide-react'
 import TransactionModal from '../ui/TransactionModal'
 import ReceiptScanner from '../ui/ReceiptScanner'
+import PrivacyToggle from '../ui/PrivacyToggle'
 
 export default function Header({ title, subtitle, onMenuOpen, onAddTx }) {
   const [showModal, setShowModal] = useState(false)
@@ -50,6 +51,8 @@ export default function Header({ title, subtitle, onMenuOpen, onAddTx }) {
           <button className="md:hidden btn-ghost p-2 rounded-xl" onClick={() => setSearchOpen(s => !s)}>
             <Search className="w-4 h-4" />
           </button>
+
+          <PrivacyToggle />
 
           {/* Bell */}
           <button className="btn-ghost p-2 rounded-xl relative">

@@ -3,8 +3,12 @@ import { Link } from 'react-router-dom'
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import { useApp } from '../context/AppContext'
 import { formatINR, formatDate, currentMonthYear } from '../lib/utils'
+import { privateValue } from '../lib/privacy'
 import StatCard from '../components/ui/StatCard'
 import TransactionModal from '../components/ui/TransactionModal'
+import { calculateHealthScore } from '../lib/healthScore'
+import { generateInsights } from '../lib/insights'
+import InsightCard from '../components/ui/InsightCard'
 
 const COLORS = ['#7c3aed','#06b6d4','#f59e0b','#e11d48','#10b981','#f97316']
 
@@ -22,6 +26,7 @@ const CustomTooltip = ({ active, payload, label }) => {
 
 export default function Dashboard() {
   const { state, getCategory, getMonthlyStats, getBudgetUsage } = useApp()
+  const privacyMode = state.privacyMode
   const [editTx, setEditTx] = useState(null)
 
   const month = currentMonthYear()
@@ -62,7 +67,7 @@ export default function Dashboard() {
   }, [state.transactions])
   const savingsRate = income > 0 ? ((income - expenses) / income * 100).toFixed(1) : 0
   const budgets = getBudgetUsage(month)
-
+  const healthScore = useMemo(() => calculateHealthScore(state), [state])
 
   // Category spending breakdown
   const categorySpend = {}
@@ -74,15 +79,57 @@ export default function Dashboard() {
     .sort((a, b) => b.value - a.value).slice(0, 6)
 
   const recent = [...state.transactions].sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0, 6)
+  const insights = useMemo(() => generateInsights(state), [state])
 
   return (
     <div className="space-y-6">
+      {/* Health Score Banner */}
+      <Link to="/health" className="block">
+        <div className="card p-4 flex items-center justify-between gap-4 cursor-pointer"
+          style={{
+            background: 'rgba(255,255,255,0.03)',
+            border: `1px solid ${healthScore.color}40`,
+            transition: 'border-color 0.2s',
+          }}>
+          {/* Left: label */}
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-widest mb-0.5"
+              style={{ color: 'rgba(196,181,253,0.5)' }}>Financial Health Score</p>
+            <p className="text-sm font-medium" style={{ color: 'rgba(196,181,253,0.7)' }}>
+              {healthScore.emoji} {healthScore.grade} — tap to see your full breakdown
+            </p>
+          </div>
+          {/* Right: score pill */}
+          <div className="flex-shrink-0 flex items-center gap-3">
+            {/* Mini arc */}
+            <div className="relative w-14 h-14 flex-shrink-0">
+              <svg width="56" height="56" style={{ transform: 'rotate(-90deg)' }}>
+                <circle cx="28" cy="28" r="22" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="5" />
+                <circle
+                  cx="28" cy="28" r="22" fill="none"
+                  stroke={healthScore.color} strokeWidth="5" strokeLinecap="round"
+                  strokeDasharray={2 * Math.PI * 22}
+                  strokeDashoffset={2 * Math.PI * 22 - (healthScore.total / 100) * 2 * Math.PI * 22}
+                />
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-sm font-extrabold text-white">{healthScore.total}</span>
+              </div>
+            </div>
+            <svg className="w-4 h-4 flex-shrink-0" style={{ color: 'rgba(196,181,253,0.3)' }}
+              fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </div>
+        </div>
+      </Link>
+
       {/* Stat Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-5">
-        <StatCard gradient="stat-1" icon="💰" label="Total Balance"  value={formatINR(balance)}   trend={balanceTrend.text}  trendUp={balanceTrend.up}  badge="This Month" />
-        <StatCard gradient="stat-2" icon="📈" label="Total Income"   value={formatINR(income)}    trend={incomeTrend.text}   trendUp={incomeTrend.up}   badge="This Month" />
-        <StatCard gradient="stat-3" icon="📉" label="Total Expenses" value={formatINR(expenses)}  trend={expenseTrend.text}  trendUp={expenseTrend.up}  badge="This Month" />
-        <StatCard gradient="stat-4" icon="🏆" label="Savings Rate"   value={`${savingsRate}%`}    trend={savingsTrend.text}  trendUp={savingsTrend.up}  badge="This Month" />
+        <StatCard gradient="stat-1" icon="💰" label="Total Balance"  value={privateValue(balance, privacyMode, formatINR)}   trend={balanceTrend.text}  trendUp={balanceTrend.up}  badge="This Month" />
+        <StatCard gradient="stat-2" icon="📈" label="Total Income"   value={privateValue(income, privacyMode, formatINR)}    trend={incomeTrend.text}   trendUp={incomeTrend.up}   badge="This Month" />
+        <StatCard gradient="stat-3" icon="📉" label="Total Expenses" value={privateValue(expenses, privacyMode, formatINR)}  trend={expenseTrend.text}  trendUp={expenseTrend.up}  badge="This Month" />
+        <StatCard gradient="stat-4" icon="🏆" label="Savings Rate"   value={privacyMode ? '••••' : `${savingsRate}%`}        trend={savingsTrend.text}  trendUp={savingsTrend.up}  badge="This Month" />
       </div>
 
       {/* Charts Row */}
@@ -127,7 +174,7 @@ export default function Dashboard() {
                     </PieChart>
                   </ResponsiveContainer>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-lg font-bold text-white">{formatINR(expenses)}</span>
+                    <span className="text-lg font-bold text-white">{privateValue(expenses, privacyMode, formatINR)}</span>
                     <span className="text-xs" style={{ color: 'rgba(196,181,253,0.5)' }}>Total Spent</span>
                   </div>
                 </div>
@@ -139,7 +186,7 @@ export default function Dashboard() {
                       <span className="w-2.5 h-2.5 rounded-full" style={{ background: COLORS[i] }} />
                       {d.name}
                     </span>
-                    <span className="font-medium">{formatINR(d.value)}</span>
+                    <span className="font-medium">{privateValue(d.value, privacyMode, formatINR)}</span>
                   </div>
                 ))}
               </div>
@@ -176,7 +223,7 @@ export default function Dashboard() {
                     </div>
                   </div>
                   <span className={`text-sm font-semibold flex-shrink-0 ml-4 ${tx.type === 'income' ? 'text-emerald-400' : 'text-rose-400'}`}>
-                    {tx.type === 'income' ? '+' : '-'}{formatINR(tx.amount)}
+                    {privacyMode ? '••••••' : `${tx.type === 'income' ? '+' : '-'}${formatINR(tx.amount)}`}
                   </span>
                 </div>
               )
@@ -200,7 +247,7 @@ export default function Dashboard() {
                 <div key={b.id}>
                   <div className="flex justify-between text-xs mb-1.5">
                     <span className="font-medium text-white">{cat?.icon} {cat?.name}</span>
-                    <span style={{ color: 'rgba(196,181,253,0.6)' }}>{formatINR(b.spent)} / {formatINR(b.monthlyLimit)}</span>
+                    <span style={{ color: 'rgba(196,181,253,0.6)' }}>{privateValue(b.spent, privacyMode, formatINR)} / {privateValue(b.monthlyLimit, privacyMode, formatINR)}</span>
                   </div>
                   <div className="progress-track">
                     <div className="progress-fill" style={{ width: `${Math.min(b.percentage, 100)}%`, background: barColor }} />
@@ -212,6 +259,22 @@ export default function Dashboard() {
             })}
           </div>
         </div>
+      </div>
+
+      {/* Insights */}
+      <div className="card p-5">
+        <h3 className="text-base font-semibold text-white mb-4">💡 Insights</h3>
+        {insights.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {insights.slice(0, 4).map(i => (
+              <InsightCard key={i.id} insight={i} />
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-center py-4" style={{ color: 'rgba(196,181,253,0.4)' }}>
+            No insights available yet. Add more transactions to get personalized tips.
+          </p>
+        )}
       </div>
 
       {editTx && <TransactionModal existing={editTx} onClose={() => setEditTx(null)} />}
