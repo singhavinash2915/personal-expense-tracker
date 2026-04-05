@@ -2,7 +2,7 @@ import { useState, useRef } from 'react'
 import { Plus, Trash2, Edit2, X, RefreshCw, TrendingUp, TrendingDown, Search } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { formatINR, formatINRDecimal, generateId } from '../lib/utils'
-import { fetchNAV, searchSchemes } from '../lib/mfapi'
+import { fetchNAV, searchSchemes, isValidSchemeCode, sanitiseSchemeCode } from '../lib/mfapi'
 
 const EMPTY_MF = { name: '', category: '', units: '', avgNav: '', currentNav: '', schemeCode: '' }
 const EMPTY_ST = { symbol: '', name: '', exchange: 'NSE', shares: '', avgCost: '', currentPrice: '' }
@@ -98,20 +98,25 @@ export default function Investments() {
       )
     )
     let updated = 0
-    results.forEach(r => {
+    const errors = []
+    results.forEach((r, i) => {
       if (r.status === 'fulfilled') {
         dispatch({
           type: 'UPDATE_INVESTMENT_NAV',
           payload: { id: r.value.mf.id, nav: r.value.navData.nav, date: r.value.navData.date }
         })
         updated++
+      } else {
+        errors.push(`${fundsWithCode[i].name}: ${r.reason?.message || 'failed'}`)
       }
     })
     const total = fundsWithCode.length
     if (updated === total) {
-      showToast(`NAV updated for ${updated} fund${updated !== 1 ? 's' : ''}`)
+      showToast(`✅ NAV updated for ${updated} fund${updated !== 1 ? 's' : ''}`)
+    } else if (updated === 0) {
+      showToast(`❌ ${errors[0] || 'Failed to update NAV. Check scheme codes.'}`)
     } else {
-      showToast(`Updated ${updated}/${total} funds`)
+      showToast(`⚠️ Updated ${updated}/${total} — ${errors[0]}`)
     }
     setRefreshing(false)
   }
@@ -123,9 +128,9 @@ export default function Investments() {
     try {
       const navData = await fetchNAV(mf.schemeCode)
       dispatch({ type: 'UPDATE_INVESTMENT_NAV', payload: { id: mf.id, nav: navData.nav, date: navData.date } })
-      showToast(`NAV updated: ${navData.schemeName}`)
-    } catch {
-      showToast('Failed to fetch NAV. Check the scheme code.')
+      showToast(`✅ NAV updated: ₹${navData.nav} (${navData.date})`)
+    } catch (err) {
+      showToast(`❌ ${err.message}`)
     }
     setNavRefreshingId(null)
   }
@@ -362,9 +367,13 @@ export default function Investments() {
                       <td className="px-4 py-3.5">
                         <p className="text-sm font-medium text-white">{mf.name}</p>
                         {mf.schemeCode ? (
-                          <div className="flex items-center gap-1.5 mt-1">
-                            <span className="text-xs font-mono" style={{ color: 'rgba(196,181,253,0.4)' }}>#{mf.schemeCode}</span>
-                            {mf.navDate && (
+                          <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                            {isValidSchemeCode(mf.schemeCode) ? (
+                              <span className="text-xs font-mono" style={{ color: 'rgba(196,181,253,0.4)' }}>#{sanitiseSchemeCode(mf.schemeCode)}</span>
+                            ) : (
+                              <span className="text-xs font-mono text-amber-400" title="Invalid AMFI code — use Search to fix">⚠️ {mf.schemeCode}</span>
+                            )}
+                            {mf.navDate && isValidSchemeCode(mf.schemeCode) && (
                               <span className="text-xs" style={{ color: 'rgba(196,181,253,0.35)' }}>
                                 · NAV as of {formatNavDate(mf.navDate)}
                               </span>
@@ -529,12 +538,23 @@ export default function Investments() {
                   type="text"
                   placeholder="e.g., 120503"
                   value={mfForm.schemeCode}
-                  onChange={e => setMFForm(f => ({ ...f, schemeCode: e.target.value }))}
+                  onChange={e => setMFForm(f => ({ ...f, schemeCode: sanitiseSchemeCode(e.target.value) }))}
                   className="input-field font-mono"
+                  maxLength={6}
                 />
-                <p className="text-xs mt-1.5" style={{ color: 'rgba(196,181,253,0.35)' }}>
-                  Find it at mfapi.in — enables "Refresh NAV" button
-                </p>
+                {mfForm.schemeCode && !isValidSchemeCode(mfForm.schemeCode) && (
+                  <p className="text-xs mt-1.5 text-amber-400">
+                    ⚠️ AMFI codes are 5–6 digits (e.g. 120503). Use 🔍 Search on the fund card to find yours.
+                  </p>
+                )}
+                {mfForm.schemeCode && isValidSchemeCode(mfForm.schemeCode) && (
+                  <p className="text-xs mt-1.5 text-emerald-400">✓ Valid AMFI scheme code format</p>
+                )}
+                {!mfForm.schemeCode && (
+                  <p className="text-xs mt-1.5" style={{ color: 'rgba(196,181,253,0.35)' }}>
+                    Find it at <strong>mfapi.in</strong> — or use 🔍 Search button on the fund card
+                  </p>
+                )}
               </div>
               <button type="submit" className="btn-primary w-full py-3 rounded-xl font-semibold text-sm mt-2">
                 {editMF ? 'Update' : 'Add'} Fund
