@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Plus, Trash2, Edit2, X, RefreshCw, TrendingUp, TrendingDown, Search } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { formatINR, formatINRDecimal, generateId } from '../lib/utils'
@@ -50,6 +50,33 @@ export default function Investments() {
   // Scheme search state: { mfId, query, results, loading, error }
   const [schemeSearch, setSchemeSearch] = useState(null)
   const schemeSearchRef = useRef(null)
+
+  // Fund name autocomplete state (in Add/Edit form)
+  const [nameSuggestions, setNameSuggestions] = useState([])
+  const [nameSearching, setNameSearching]     = useState(false)
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const nameDebounceRef = useRef(null)
+
+  // Debounced AMFI search whenever fund name changes in the form
+  useEffect(() => {
+    const query = mfForm.name.trim()
+    if (query.length < 3) { setNameSuggestions([]); setShowSuggestions(false); return }
+    clearTimeout(nameDebounceRef.current)
+    nameDebounceRef.current = setTimeout(async () => {
+      setNameSearching(true)
+      try {
+        const results = await searchSchemes(query)
+        setNameSuggestions(results.slice(0, 8))
+        setShowSuggestions(results.length > 0)
+      } catch {
+        setNameSuggestions([])
+        setShowSuggestions(false)
+      } finally {
+        setNameSearching(false)
+      }
+    }, 350)
+    return () => clearTimeout(nameDebounceRef.current)
+  }, [mfForm.name])
 
   // MF calculations
   const mfData = mfs.map(mf => {
@@ -178,7 +205,7 @@ export default function Investments() {
     setRefreshing(false)
   }
 
-  function openAddMF() { setMFForm(EMPTY_MF); setEditMF(null); setShowMFForm(true) }
+  function openAddMF() { setMFForm(EMPTY_MF); setEditMF(null); setShowMFForm(true); setNameSuggestions([]); setShowSuggestions(false) }
   function openEditMF(mf) {
     setMFForm({
       ...mf,
@@ -187,7 +214,7 @@ export default function Investments() {
       currentNav: String(mf.currentNav),
       schemeCode: mf.schemeCode || ''
     })
-    setEditMF(mf); setShowMFForm(true)
+    setEditMF(mf); setShowMFForm(true); setNameSuggestions([]); setShowSuggestions(false)
   }
   function openAddST() { setSTForm(EMPTY_ST); setEditST(null); setShowSTForm(true) }
   function openEditST(st) {
@@ -507,10 +534,66 @@ export default function Investments() {
               </button>
             </div>
             <form onSubmit={handleMFSubmit} className="flex-1 px-5 pb-5 md:px-8 md:pb-8 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-violet-200 mb-1.5">Fund Name</label>
-                <input type="text" required placeholder="e.g., Mirae Asset Large Cap" value={mfForm.name}
-                  onChange={e => setMFForm(f => ({ ...f, name: e.target.value }))} className="input-field" />
+              {/* Fund Name with AMFI autocomplete */}
+              <div className="relative">
+                <label className="block text-sm font-medium text-violet-200 mb-1.5">
+                  Fund Name
+                  {nameSearching && (
+                    <span className="ml-2 text-xs font-normal" style={{ color: 'rgba(196,181,253,0.45)' }}>
+                      <RefreshCw className="inline w-3 h-3 animate-spin mr-1" />searching AMFI…
+                    </span>
+                  )}
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g., HDFC Flexi Cap — type to search AMFI"
+                  value={mfForm.name}
+                  autoComplete="off"
+                  onChange={e => {
+                    setMFForm(f => ({ ...f, name: e.target.value }))
+                    setShowSuggestions(true)
+                  }}
+                  onFocus={() => nameSuggestions.length > 0 && setShowSuggestions(true)}
+                  onBlur={() => setTimeout(() => setShowSuggestions(false), 180)}
+                  className="input-field"
+                />
+                {/* Suggestions dropdown */}
+                {showSuggestions && nameSuggestions.length > 0 && (
+                  <div
+                    className="absolute left-0 right-0 z-50 mt-1 rounded-xl overflow-hidden shadow-2xl"
+                    style={{ background: 'rgba(13,10,35,0.99)', border: '1px solid rgba(109,40,217,0.35)' }}
+                  >
+                    <p className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider"
+                      style={{ color: 'rgba(196,181,253,0.4)', borderBottom: '1px solid rgba(109,40,217,0.15)' }}>
+                      AMFI matches — tap to auto-fill scheme code
+                    </p>
+                    {nameSuggestions.map(s => (
+                      <button
+                        key={s.schemeCode}
+                        type="button"
+                        onMouseDown={() => {
+                          setMFForm(f => ({
+                            ...f,
+                            name: s.schemeName,
+                            schemeCode: String(s.schemeCode),
+                          }))
+                          setShowSuggestions(false)
+                          showToast(`✅ Linked: ${s.schemeName} (#${s.schemeCode})`)
+                        }}
+                        className="w-full text-left px-3 py-2.5 transition-colors"
+                        style={{ borderBottom: '1px solid rgba(109,40,217,0.08)' }}
+                        onMouseEnter={e => e.currentTarget.style.background = 'rgba(109,40,217,0.15)'}
+                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                      >
+                        <p className="text-xs text-white leading-snug">{s.schemeName}</p>
+                        <p className="text-[10px] font-mono mt-0.5" style={{ color: 'rgba(139,92,246,0.7)' }}>
+                          #{s.schemeCode}
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-violet-200 mb-1.5">Category</label>
