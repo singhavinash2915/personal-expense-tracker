@@ -14,12 +14,25 @@ export const DEFAULT_CATEGORIES = [
   { id: 'i3',  name: 'Investment',    icon: '📈', color: '#a3e635', type: 'income'  },
   { id: 'i4',  name: 'Gift',          icon: '🎁', color: '#fb7185', type: 'income'  },
   { id: 'i5',  name: 'Other Income',  icon: '🏦', color: '#818cf8', type: 'income'  },
-  { id: 'tr1', name: 'SIP / Mutual Fund',   icon: '📊', color: '#06b6d4', type: 'transfer' },
-  { id: 'tr2', name: 'Stock Purchase',       icon: '📈', color: '#06b6d4', type: 'transfer' },
-  { id: 'tr3', name: 'Savings Transfer',     icon: '🏦', color: '#06b6d4', type: 'transfer' },
-  { id: 'tr4', name: 'FD / RD',             icon: '🔒', color: '#06b6d4', type: 'transfer' },
-  { id: 'tr5', name: 'Loan Payment',         icon: '💳', color: '#06b6d4', type: 'transfer' },
-  { id: 'tr6', name: 'Transfer to Account', icon: '↔️', color: '#06b6d4', type: 'transfer' },
+  // Investments
+  { id: 'tr1',  name: 'SIP / Mutual Fund',    icon: '📊', color: '#06b6d4', type: 'transfer' },
+  { id: 'tr2',  name: 'Stock Purchase',        icon: '📈', color: '#06b6d4', type: 'transfer' },
+  { id: 'tr3',  name: 'PPF',                   icon: '🏛️', color: '#06b6d4', type: 'transfer' },
+  { id: 'tr4',  name: 'FD / RD',              icon: '🔒', color: '#06b6d4', type: 'transfer' },
+  { id: 'tr5',  name: 'NPS',                   icon: '🎯', color: '#06b6d4', type: 'transfer' },
+  { id: 'tr6',  name: 'Gold / SGBs',           icon: '🪙', color: '#06b6d4', type: 'transfer' },
+  { id: 'tr7',  name: 'ELSS',                  icon: '💹', color: '#06b6d4', type: 'transfer' },
+  // Loan EMIs
+  { id: 'tr8',  name: 'Home Loan EMI',         icon: '🏠', color: '#818cf8', type: 'transfer' },
+  { id: 'tr9',  name: 'Car Loan EMI',          icon: '🚗', color: '#818cf8', type: 'transfer' },
+  { id: 'tr10', name: 'Personal Loan EMI',     icon: '🧾', color: '#818cf8', type: 'transfer' },
+  { id: 'tr11', name: 'Education Loan EMI',    icon: '📚', color: '#818cf8', type: 'transfer' },
+  { id: 'tr12', name: 'Two-Wheeler Loan EMI',  icon: '🛵', color: '#818cf8', type: 'transfer' },
+  { id: 'tr13', name: 'Business Loan EMI',     icon: '🏢', color: '#818cf8', type: 'transfer' },
+  // Savings & Transfers
+  { id: 'tr14', name: 'Savings Transfer',      icon: '🏦', color: '#34d399', type: 'transfer' },
+  { id: 'tr15', name: 'Transfer to Account',   icon: '↔️', color: '#34d399', type: 'transfer' },
+  { id: 'tr16', name: 'Emergency Fund',        icon: '🛡️', color: '#34d399', type: 'transfer' },
 ]
 
 export const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']

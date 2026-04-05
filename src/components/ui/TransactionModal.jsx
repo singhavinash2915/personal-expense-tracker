@@ -86,9 +86,32 @@ export default function TransactionModal({ onClose, existing }) {
               onChange={e => setForm(f => ({ ...f, categoryId: e.target.value }))}
               className="input-field">
               <option value="">Select category</option>
-              {cats.map(c => (
-                <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
-              ))}
+              {form.type === 'transfer' ? (
+                <>
+                  <optgroup label="── Investments ──">
+                    {transferCategories.filter(c => ['tr1','tr2','tr3','tr4','tr5','tr6','tr7'].includes(c.id)).map(c => (
+                      <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
+                    ))}
+                    {transferCategories.filter(c => !['tr1','tr2','tr3','tr4','tr5','tr6','tr7','tr8','tr9','tr10','tr11','tr12','tr13','tr14','tr15','tr16'].includes(c.id)).map(c => (
+                      <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="── Loan EMIs ──">
+                    {transferCategories.filter(c => ['tr8','tr9','tr10','tr11','tr12','tr13'].includes(c.id)).map(c => (
+                      <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="── Savings & Transfers ──">
+                    {transferCategories.filter(c => ['tr14','tr15','tr16'].includes(c.id)).map(c => (
+                      <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
+                    ))}
+                  </optgroup>
+                </>
+              ) : (
+                cats.map(c => (
+                  <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
+                ))
+              )}
             </select>
           </div>
 
