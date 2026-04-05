@@ -4,7 +4,9 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
 export default defineConfig(({ command }) => {
-  const base = command === 'build' ? '/personal-expense-tracker/' : '/'
+  // Capacitor builds need base '/' — GitHub Pages needs '/personal-expense-tracker/'
+  const isCapacitor = process.env.BUILD_TARGET === 'capacitor'
+  const base = (command === 'build' && !isCapacitor) ? '/personal-expense-tracker/' : '/'
 
   return {
     plugins: [
