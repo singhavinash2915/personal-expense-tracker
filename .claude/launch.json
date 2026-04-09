@@ -3,8 +3,8 @@
   "configurations": [
     {
       "name": "expense-tracker-app",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeExecutable": "/usr/bin/env",
+      "runtimeArgs": ["-S", "PATH=/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin", "sh", "-c", "cd /Users/avinashsingh/Documents/expense-tracker-app && npm run dev"],
       "port": 5173
     }
   ]

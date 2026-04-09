@@ -19,6 +19,7 @@ const pageMeta = {
   '/settings':      { title: 'Settings',      subtitle: 'Customize your experience and manage data.' },
   '/privacy':       { title: 'Privacy Policy', subtitle: 'How we handle your data.' },
   '/health':        { title: 'Health Score',   subtitle: 'How financially healthy are you?' },
+  '/ai-insights':   { title: 'AI Insights',    subtitle: 'Smart analysis of your financial patterns.' },
 }
 
 const BOTTOM_NAV = [

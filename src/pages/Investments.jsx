@@ -1,8 +1,12 @@
 import { useState, useRef, useEffect } from 'react'
-import { Plus, Trash2, Edit2, X, RefreshCw, TrendingUp, TrendingDown, Search } from 'lucide-react'
+import { Plus, Trash2, Edit2, X, RefreshCw, TrendingUp, TrendingDown, Search, LineChart as LineChartIcon, BarChart2 } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { formatINR, formatINRDecimal, generateId } from '../lib/utils'
 import { fetchNAV, searchSchemes, isValidSchemeCode, sanitiseSchemeCode } from '../lib/mfapi'
+import { calcCAGR } from '../lib/investmentAI'
+import StockChart from '../components/ui/StockChart'
+import MFChart from '../components/ui/MFChart'
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 
 const EMPTY_MF = { name: '', category: '', units: '', avgNav: '', currentNav: '', schemeCode: '' }
 const EMPTY_ST = { symbol: '', name: '', exchange: 'NSE', shares: '', avgCost: '', currentPrice: '' }
@@ -50,6 +54,10 @@ export default function Investments() {
   const countdownRef = useRef(null)
   const [toastMsg, setToastMsg] = useState('')
   const [navRefreshingId, setNavRefreshingId] = useState(null)
+
+  // Chart overlay state
+  const [chartStock, setChartStock] = useState(null)
+  const [chartMF, setChartMF]       = useState(null)
 
   // Scheme search state: { mfId, query, results, loading, error }
   const [schemeSearch, setSchemeSearch] = useState(null)
@@ -473,9 +481,30 @@ export default function Investments() {
                       <td className="px-4 py-3.5 text-sm text-white font-medium">{formatINRDecimal(mf.currentNav)}</td>
                       <td className="px-4 py-3.5 text-sm" style={{ color: 'rgba(196,181,253,0.7)' }}>{formatINR(mf.invested)}</td>
                       <td className="px-4 py-3.5 text-sm font-semibold text-white">{formatINR(mf.current)}</td>
-                      <td className="px-4 py-3.5"><GainBadge gain={mf.gain} gainPct={mf.gainPct} /></td>
+                      <td className="px-4 py-3.5">
+                        <GainBadge gain={mf.gain} gainPct={mf.gainPct} />
+                        {(() => {
+                          const yearsApprox = mf.purchaseDate
+                            ? Math.max((Date.now() - new Date(mf.purchaseDate)) / (1000 * 60 * 60 * 24 * 365.25), 1 / 12)
+                            : 2
+                          const cagr = calcCAGR(mf.avgNav, mf.currentNav, yearsApprox)
+                          if (cagr === null) return null
+                          return (
+                            <p className={`text-[10px] font-semibold mt-0.5 ${cagr >= 0 ? 'text-emerald-400/70' : 'text-rose-400/70'}`}>
+                              CAGR ~{cagr >= 0 ? '' : ''}{cagr}%
+                            </p>
+                          )
+                        })()}
+                      </td>
                       <td className="px-4 py-3.5">
                         <div className="flex gap-1.5">
+                          <button
+                            onClick={() => setChartMF(mf)}
+                            title="View NAV history chart"
+                            className="btn-ghost p-1.5 rounded-lg text-violet-400"
+                          >
+                            <LineChartIcon className="w-3.5 h-3.5" />
+                          </button>
                           {mf.schemeCode && (
                             <button
                               onClick={() => handleRefreshSingleNAV(mf)}
@@ -559,6 +588,13 @@ export default function Investments() {
                       <td className="px-4 py-3.5"><GainBadge gain={st.gain} gainPct={st.gainPct} /></td>
                       <td className="px-4 py-3.5">
                         <div className="flex gap-1.5">
+                          <button
+                            onClick={() => setChartStock(st)}
+                            title="View price chart"
+                            className="btn-ghost p-1.5 rounded-lg text-violet-400"
+                          >
+                            <BarChart2 className="w-3.5 h-3.5" />
+                          </button>
                           <button onClick={() => openEditST(st)} className="btn-ghost p-1.5 rounded-lg text-violet-300"><Edit2 className="w-3.5 h-3.5" /></button>
                           <button onClick={() => setConfirmDelete({ id: st.id, type: 'stock' })} className="btn-ghost p-1.5 rounded-lg text-rose-400"><Trash2 className="w-3.5 h-3.5" /></button>
                         </div>
@@ -811,6 +847,91 @@ export default function Investments() {
           </div>
         </div>
       )}
+
+      {/* Portfolio Composition */}
+      {(mfData.length > 0 || stockData.length > 0) && (() => {
+        const PIE_COLORS = ['#7c3aed','#06b6d4','#f59e0b','#e11d48','#10b981','#f97316','#8b5cf6','#0ea5e9']
+
+        // MF breakdown by category
+        const catMap = {}
+        mfData.forEach(m => {
+          catMap[m.category] = (catMap[m.category] || 0) + m.current
+        })
+        const catData = Object.entries(catMap).map(([name, value]) => ({ name, value: parseFloat(value.toFixed(0)) }))
+
+        // Stock vs MF
+        const allocationData = []
+        if (totalMFCurrent > 0) allocationData.push({ name: 'Mutual Funds', value: parseFloat(totalMFCurrent.toFixed(0)) })
+        if (totalSTCurrent > 0) allocationData.push({ name: 'Stocks', value: parseFloat(totalSTCurrent.toFixed(0)) })
+
+        const PieTooltip = ({ active, payload }) => {
+          if (!active || !payload?.length) return null
+          return (
+            <div className="text-xs rounded-xl px-3 py-2 shadow-xl"
+              style={{ background: 'rgba(13,10,35,0.97)', border: '1px solid rgba(109,40,217,0.3)' }}>
+              <p style={{ color: payload[0].payload.fill || payload[0].color }} className="font-semibold">{payload[0].name}</p>
+              <p className="text-white">{formatINR(payload[0].value)}</p>
+            </div>
+          )
+        }
+
+        return (
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold text-white/70 uppercase tracking-wider">Portfolio Composition</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* MF by category */}
+              {catData.length > 0 && (
+                <div className="card p-4">
+                  <p className="text-xs font-semibold text-violet-300 mb-3 uppercase tracking-wider">MF by Category</p>
+                  <div style={{ height: 180 }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie data={catData} cx="50%" cy="50%" innerRadius={42} outerRadius={72}
+                          dataKey="value" nameKey="name" paddingAngle={2}>
+                          {catData.map((_, i) => (
+                            <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip content={<PieTooltip />} />
+                        <Legend iconType="circle" iconSize={8}
+                          wrapperStyle={{ fontSize: 10, color: 'rgba(196,181,253,0.6)' }} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              )}
+
+              {/* Stock vs MF allocation */}
+              {allocationData.length > 0 && (
+                <div className="card p-4">
+                  <p className="text-xs font-semibold text-violet-300 mb-3 uppercase tracking-wider">Asset Allocation</p>
+                  <div style={{ height: 180 }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie data={allocationData} cx="50%" cy="50%" innerRadius={42} outerRadius={72}
+                          dataKey="value" nameKey="name" paddingAngle={3}>
+                          {allocationData.map((_, i) => (
+                            <Cell key={i} fill={i === 0 ? '#7c3aed' : '#06b6d4'} />
+                          ))}
+                        </Pie>
+                        <Tooltip content={<PieTooltip />} />
+                        <Legend iconType="circle" iconSize={8}
+                          wrapperStyle={{ fontSize: 10, color: 'rgba(196,181,253,0.6)' }} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )
+      })()}
+
+      {/* Stock chart overlay */}
+      {chartStock && <StockChart stock={chartStock} onClose={() => setChartStock(null)} />}
+
+      {/* MF chart overlay */}
+      {chartMF && <MFChart mf={chartMF} onClose={() => setChartMF(null)} />}
 
       {/* Delete Confirm */}
       {confirmDelete && (

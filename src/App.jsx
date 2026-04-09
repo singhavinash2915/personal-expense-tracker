@@ -13,6 +13,7 @@ import Investments from './pages/Investments'
 import Settings from './pages/Settings'
 import PrivacyPolicy from './pages/PrivacyPolicy'
 import HealthScore from './pages/HealthScore'
+import AIInsights from './pages/AIInsights'
 
 export default function App() {
   return (
@@ -31,6 +32,7 @@ export default function App() {
             <Route path="settings" element={<Settings />} />
             <Route path="privacy" element={<PrivacyPolicy />} />
             <Route path="health" element={<HealthScore />} />
+            <Route path="ai-insights" element={<AIInsights />} />
           </Route>
         </Routes>
         <PWAInstallBanner />
