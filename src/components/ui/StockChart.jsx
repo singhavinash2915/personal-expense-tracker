@@ -63,12 +63,31 @@ export default function StockChart({ stock, onClose }) {
       try {
         const yhRange = RANGES[range]
         const interval = getInterval(range)
-        const url = `https://query1.finance.yahoo.com/v8/finance/chart/${stock.symbol}.NS?range=${yhRange}&interval=${interval}`
-        const proxy = `https://corsproxy.io/?${encodeURIComponent(url)}`
+        // Try query2 first (less rate-limited), then query1
+        const baseUrls = [
+          `https://query2.finance.yahoo.com/v8/finance/chart/${stock.symbol}.NS?range=${yhRange}&interval=${interval}&includePrePost=false`,
+          `https://query1.finance.yahoo.com/v8/finance/chart/${stock.symbol}.NS?range=${yhRange}&interval=${interval}&includePrePost=false`,
+        ]
+        const proxies = baseUrls.flatMap(u => [
+          `https://corsproxy.io/?${encodeURIComponent(u)}`,
+          `https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,
+          `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+        ])
 
-        const res = await fetch(proxy, { signal: AbortSignal.timeout(15000) })
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
-        const json = await res.json()
+        let json = null
+        let lastErr = ''
+        for (const proxy of proxies) {
+          try {
+            const res = await fetch(proxy, { signal: AbortSignal.timeout(10000) })
+            if (!res.ok) { lastErr = `HTTP ${res.status}`; continue }
+            const raw = await res.json()
+            // allorigins wraps in { contents: '...' }
+            json = raw?.contents ? JSON.parse(raw.contents) : raw
+            if (json?.chart?.result?.[0]) break
+            json = null
+          } catch { /* try next */ }
+        }
+        if (!json) throw new Error(`Could not fetch price history (${lastErr || 'all proxies failed'})`)
 
         const result = json?.chart?.result?.[0]
         if (!result) throw new Error('No data returned')

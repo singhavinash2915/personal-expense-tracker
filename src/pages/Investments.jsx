@@ -214,14 +214,18 @@ export default function Investments() {
     setRefreshError('')
 
     const fetchOne = async (st) => {
-      const chartUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${st.symbol}.NS?range=1d&interval=1d`
-      const proxies = [
-        `https://corsproxy.io/?${chartUrl}`,
-        `https://api.allorigins.win/get?url=${encodeURIComponent(chartUrl)}`,
+      const baseUrls = [
+        `https://query2.finance.yahoo.com/v8/finance/chart/${st.symbol}.NS?range=1d&interval=1d&includePrePost=false`,
+        `https://query1.finance.yahoo.com/v8/finance/chart/${st.symbol}.NS?range=1d&interval=1d&includePrePost=false`,
       ]
+      const proxies = baseUrls.flatMap(u => [
+        `https://corsproxy.io/?${encodeURIComponent(u)}`,
+        `https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,
+        `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+      ])
       for (const proxy of proxies) {
         try {
-          const res = await fetch(proxy, { signal: AbortSignal.timeout(12000) })
+          const res = await fetch(proxy, { signal: AbortSignal.timeout(10000) })
           if (!res.ok) continue
           const raw = await res.json()
           const body = raw?.contents ? JSON.parse(raw.contents) : raw
