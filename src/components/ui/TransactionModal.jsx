@@ -7,7 +7,7 @@ const today = new Date().toISOString().split('T')[0]
 export default function TransactionModal({ onClose, existing }) {
   const { state, dispatch } = useApp()
   const [form, setForm] = useState(existing || {
-    type: 'expense', amount: '', description: '', categoryId: '', accountId: '', toAccountId: '', date: today, notes: ''
+    type: 'expense', amount: '', description: '', categoryId: '', accountId: '', toAccountId: '', date: today, notes: '', creditCardId: ''
   })
 
   const expenseCategories  = state.categories.filter(c => c.type === 'expense')
@@ -148,6 +148,23 @@ export default function TransactionModal({ onClose, existing }) {
                 <option value="">Select destination account (optional)</option>
                 {accounts.map(a => (
                   <option key={a.id} value={a.id}>{a.name} — {a.bank}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Credit Card (only for expenses) */}
+          {form.type === 'expense' && state.creditCards?.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-violet-200 mb-1.5">
+                Charged to Credit Card <span style={{ color: 'rgba(196,181,253,0.4)', fontWeight: 400 }}>(optional)</span>
+              </label>
+              <select value={form.creditCardId || ''}
+                onChange={e => setForm(f => ({ ...f, creditCardId: e.target.value }))}
+                className="input-field">
+                <option value="">Paid directly (not via credit card)</option>
+                {(state.creditCards || []).map(c => (
+                  <option key={c.id} value={c.id}>💳 {c.name} (••{c.last4})</option>
                 ))}
               </select>
             </div>

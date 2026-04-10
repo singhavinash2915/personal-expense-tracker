@@ -61,6 +61,30 @@ function reducer(state, action) {
       return { ...state, creditCards: state.creditCards.map(c => c.id === action.payload.id ? action.payload : c) }
     case 'DELETE_CREDIT_CARD':
       return { ...state, creditCards: state.creditCards.filter(c => c.id !== action.payload) }
+    case 'PAY_CREDIT_CARD': {
+      const { cardId, accountId, amount, date, note } = action.payload
+      const newTx = {
+        id: generateId(),
+        type: 'transfer',
+        categoryId: 'tr17',  // Credit Card Payment
+        accountId,
+        toAccountId: cardId,
+        description: note || `Credit Card Payment`,
+        amount,
+        date,
+        notes: '',
+      }
+      return {
+        ...state,
+        transactions: [newTx, ...state.transactions],
+        accounts: state.accounts.map(a =>
+          a.id === accountId ? { ...a, balance: Math.max(0, a.balance - amount) } : a
+        ),
+        creditCards: state.creditCards.map(c =>
+          c.id === cardId ? { ...c, outstanding: Math.max(0, c.outstanding - amount) } : c
+        ),
+      }
+    }
 
     // Subscriptions
     case 'ADD_SUBSCRIPTION':

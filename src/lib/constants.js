@@ -33,6 +33,7 @@ export const DEFAULT_CATEGORIES = [
   { id: 'tr14', name: 'Savings Transfer',      icon: '🏦', color: '#34d399', type: 'transfer' },
   { id: 'tr15', name: 'Transfer to Account',   icon: '↔️', color: '#34d399', type: 'transfer' },
   { id: 'tr16', name: 'Emergency Fund',        icon: '🛡️', color: '#34d399', type: 'transfer' },
+  { id: 'tr17', name: 'Credit Card Payment',  icon: '💳', color: '#818cf8', type: 'transfer' },
 ]
 
 export const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
@@ -68,9 +69,9 @@ export const SAMPLE_BUDGETS = [
 ]
 
 export const SAMPLE_CREDIT_CARDS = [
-  { id: 'cc1', name: 'HDFC Regalia',   bank: 'HDFC Bank',   type: 'VISA Platinum',    last4: '4829', limit: 500000, outstanding: 45200, color: 'from-violet-800 to-blue-900',   expires: '09/28' },
-  { id: 'cc2', name: 'SBI Elite',      bank: 'SBI Card',    type: 'Mastercard Gold',  last4: '7163', limit: 300000, outstanding: 28500, color: 'from-amber-800 to-yellow-900',  expires: '03/27' },
-  { id: 'cc3', name: 'ICICI Amazon',   bank: 'ICICI Bank',  type: 'VISA Signature',   last4: '3341', limit: 200000, outstanding: 0,     color: 'from-slate-800 to-slate-700',   expires: '07/29' },
+  { id: 'cc1', name: 'HDFC Regalia',   bank: 'HDFC Bank',   type: 'VISA Platinum',    last4: '4829', limit: 500000, outstanding: 45200, color: 'from-violet-800 to-blue-900',   expires: '09/28', dueDate: 15, minDue: 2500 },
+  { id: 'cc2', name: 'SBI Elite',      bank: 'SBI Card',    type: 'Mastercard Gold',  last4: '7163', limit: 300000, outstanding: 28500, color: 'from-amber-800 to-yellow-900',  expires: '03/27', dueDate: 15, minDue: 2500 },
+  { id: 'cc3', name: 'ICICI Amazon',   bank: 'ICICI Bank',  type: 'VISA Signature',   last4: '3341', limit: 200000, outstanding: 0,     color: 'from-slate-800 to-slate-700',   expires: '07/29', dueDate: 15, minDue: 2500 },
 ]
 
 export const SAMPLE_SUBSCRIPTIONS = [

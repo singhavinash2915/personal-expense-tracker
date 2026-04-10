@@ -17,6 +17,7 @@ export default function Transactions() {
   const [typeFilter, setTypeFilter] = useState('All')
   const [catFilter, setCatFilter] = useState('')
   const [accFilter, setAccFilter] = useState(location.state?.accountId || '')
+  const [ccFilter, setCCFilter] = useState(location.state?.creditCardId || '')
   const [editTx, setEditTx] = useState(null)
   const [showAdd, setShowAdd] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(null)
@@ -28,13 +29,14 @@ export default function Transactions() {
         if (typeFilter !== 'All' && t.type !== typeFilter.toLowerCase()) return false
         if (catFilter && t.categoryId !== catFilter) return false
         if (accFilter && t.accountId !== accFilter) return false
+        if (ccFilter && t.creditCardId !== ccFilter) return false
         if (search) {
           const q = search.toLowerCase()
           return t.description.toLowerCase().includes(q) || (getCategory(t.categoryId)?.name || '').toLowerCase().includes(q)
         }
         return true
       })
-  }, [state.transactions, search, typeFilter, catFilter, accFilter])
+  }, [state.transactions, search, typeFilter, catFilter, accFilter, ccFilter])
 
   const totalIncome    = filtered.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)
   const totalExpense   = filtered.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
@@ -118,6 +120,16 @@ export default function Transactions() {
             ))}
           </select>
 
+          {/* Credit Card Filter */}
+          {(state.creditCards || []).length > 0 && (
+            <select value={ccFilter} onChange={e => setCCFilter(e.target.value)} className="input-field text-sm py-1.5 min-w-[160px]">
+              <option value="">All Cards</option>
+              {(state.creditCards || []).map(c => (
+                <option key={c.id} value={c.id}>💳 {c.name}</option>
+              ))}
+            </select>
+          )}
+
           <button onClick={() => setShowAdd(true)}
             className="btn-primary flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl ml-auto">
             <Plus className="w-4 h-4" /> Add
@@ -148,6 +160,12 @@ export default function Transactions() {
                   <td className="px-5 py-3.5">
                     <p className="text-sm font-medium text-white">{tx.description}</p>
                     {tx.toAccountId && (() => { const toAcc = accounts.find(a => a.id === tx.toAccountId); return toAcc ? <p className="text-xs mt-0.5 text-cyan-400/70">→ {toAcc.name}</p> : null })()}
+                    {tx.creditCardId && (() => {
+                      const cc = (state.creditCards || []).find(c => c.id === tx.creditCardId)
+                      return cc ? (
+                        <p className="text-xs mt-0.5" style={{ color: 'rgba(139,92,246,0.7)' }}>💳 {cc.name} (••{cc.last4})</p>
+                      ) : null
+                    })()}
                     {tx.notes && <p className="text-xs mt-0.5 truncate max-w-[200px]" style={{ color: 'rgba(196,181,253,0.4)' }}>{tx.notes}</p>}
                   </td>
                   <td className="px-5 py-3.5">

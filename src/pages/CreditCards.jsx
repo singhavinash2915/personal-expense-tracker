@@ -1,7 +1,10 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Plus, Trash2, Edit2, X, CreditCard } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { formatINR, generateId } from '../lib/utils'
+
+const today = new Date().toISOString().split('T')[0]
 
 const CARD_GRADIENTS = [
   'from-violet-800 to-blue-900',
@@ -13,16 +16,21 @@ const CARD_GRADIENTS = [
 ]
 
 const EMPTY_FORM = {
-  name: '', bank: '', type: '', last4: '', limit: '', outstanding: '', expires: '', color: CARD_GRADIENTS[0]
+  name: '', bank: '', type: '', last4: '', limit: '', outstanding: '', expires: '', color: CARD_GRADIENTS[0],
+  dueDate: '', minDue: '',
 }
 
 export default function CreditCards() {
   const { state, dispatch } = useApp()
+  const navigate = useNavigate()
   const cards = state.creditCards || []
+  const accounts = state.accounts || []
+
   const [showForm, setShowForm] = useState(false)
   const [editCard, setEditCard] = useState(null)
   const [form, setForm] = useState(EMPTY_FORM)
   const [confirmDelete, setConfirmDelete] = useState(null)
+  const [payDialog, setPayDialog] = useState(null) // { card, amount, accountId, date, note }
 
   const totalLimit       = cards.reduce((s, c) => s + c.limit, 0)
   const totalOutstanding = cards.reduce((s, c) => s + c.outstanding, 0)
@@ -35,20 +43,51 @@ export default function CreditCards() {
   }
 
   function openEdit(card) {
-    setForm({ ...card, limit: String(card.limit), outstanding: String(card.outstanding) })
+    setForm({
+      ...card,
+      limit: String(card.limit),
+      outstanding: String(card.outstanding),
+      dueDate: card.dueDate != null ? String(card.dueDate) : '',
+      minDue: card.minDue != null ? String(card.minDue) : '',
+    })
     setEditCard(card)
     setShowForm(true)
   }
 
   function handleSubmit(e) {
     e.preventDefault()
-    const payload = { ...form, limit: parseFloat(form.limit), outstanding: parseFloat(form.outstanding) }
+    const payload = {
+      ...form,
+      limit: parseFloat(form.limit),
+      outstanding: parseFloat(form.outstanding),
+      dueDate: form.dueDate !== '' ? parseInt(form.dueDate) : undefined,
+      minDue: form.minDue !== '' ? parseFloat(form.minDue) : undefined,
+    }
     if (editCard) {
       dispatch({ type: 'UPDATE_CREDIT_CARD', payload })
     } else {
       dispatch({ type: 'ADD_CREDIT_CARD', payload: { ...payload, id: generateId() } })
     }
     setShowForm(false)
+  }
+
+  function handlePayConfirm() {
+    if (!payDialog) return
+    const amount = parseFloat(payDialog.amount)
+    if (!amount || amount <= 0) { alert('Enter a valid amount'); return }
+    if (amount > payDialog.card.outstanding) { alert('Amount exceeds outstanding balance'); return }
+    if (!payDialog.accountId) { alert('Please select an account'); return }
+    dispatch({
+      type: 'PAY_CREDIT_CARD',
+      payload: {
+        cardId: payDialog.card.id,
+        accountId: payDialog.accountId,
+        amount,
+        date: payDialog.date || today,
+        note: payDialog.note || '',
+      },
+    })
+    setPayDialog(null)
   }
 
   return (
@@ -114,6 +153,9 @@ export default function CreditCards() {
                     <div className="text-right">
                       <p className="text-xs text-white/50">Outstanding</p>
                       <p className="text-base font-bold text-white">{formatINR(card.outstanding)}</p>
+                      {card.dueDate && (
+                        <p className="text-xs text-white/50 mt-0.5">Due: {card.dueDate}th of month</p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -127,20 +169,48 @@ export default function CreditCards() {
                   <div className="progress-track mb-3">
                     <div className="progress-fill" style={{ width: `${Math.min(usePct, 100)}%`, background: barColor }} />
                   </div>
-                  <div className="flex justify-between text-xs mb-3">
+                  <div className="flex justify-between text-xs mb-1">
                     <span style={{ color: 'rgba(196,181,253,0.5)' }}>Limit: <span className="text-white">{formatINR(card.limit)}</span></span>
                     <span style={{ color: 'rgba(196,181,253,0.5)' }}>Available: <span className="text-emerald-400">{formatINR(card.limit - card.outstanding)}</span></span>
                   </div>
+                  {card.minDue != null && card.minDue > 0 && (
+                    <div className="text-xs mb-3" style={{ color: 'rgba(196,181,253,0.5)' }}>
+                      Min Due: <span className="text-amber-400">{formatINR(card.minDue)}</span>
+                    </div>
+                  )}
+                  {!(card.minDue != null && card.minDue > 0) && <div className="mb-3" />}
+
+                  {/* Action buttons: Edit | Pay Bill | Delete */}
                   <div className="flex gap-2">
                     <button onClick={() => openEdit(card)}
                       className="btn-ghost flex-1 py-2 rounded-xl text-xs flex items-center justify-center gap-1.5">
                       <Edit2 className="w-3 h-3" /> Edit
+                    </button>
+                    <button
+                      onClick={() => setPayDialog({
+                        card,
+                        amount: String(card.minDue || card.outstanding || ''),
+                        accountId: '',
+                        date: today,
+                        note: '',
+                      })}
+                      className="flex-1 py-2 rounded-xl text-xs flex items-center justify-center gap-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition">
+                      💳 Pay Bill
                     </button>
                     <button onClick={() => setConfirmDelete(card.id)}
                       className="flex-1 py-2 rounded-xl text-xs flex items-center justify-center gap-1.5 bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20 transition">
                       <Trash2 className="w-3 h-3" /> Delete
                     </button>
                   </div>
+
+                  {/* View Transactions link */}
+                  <button
+                    onClick={() => navigate('/transactions', { state: { creditCardId: card.id } })}
+                    className="w-full mt-1 py-1.5 rounded-xl text-xs text-center btn-ghost"
+                    style={{ color: 'rgba(139,92,246,0.7)' }}
+                  >
+                    View all transactions on this card →
+                  </button>
                 </div>
               </div>
             )
@@ -189,6 +259,27 @@ export default function CreditCards() {
                 </div>
               ))}
 
+              {/* Due Date & Min Due */}
+              <div>
+                <label className="block text-sm font-medium text-violet-200 mb-1.5">
+                  Payment Due Date <span style={{ color: 'rgba(196,181,253,0.4)', fontWeight: 400 }}>(day of month, optional)</span>
+                </label>
+                <input type="number" min="1" max="31" placeholder="e.g., 15"
+                  value={form.dueDate} onChange={e => setForm(f => ({ ...f, dueDate: e.target.value }))}
+                  className="input-field" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-violet-200 mb-1.5">
+                  Minimum Due (₹) <span style={{ color: 'rgba(196,181,253,0.4)', fontWeight: 400 }}>(optional)</span>
+                </label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-violet-300 font-semibold">₹</span>
+                  <input type="number" min="0" placeholder="0"
+                    value={form.minDue} onChange={e => setForm(f => ({ ...f, minDue: e.target.value }))}
+                    className="input-field pl-9" />
+                </div>
+              </div>
+
               {/* Color Picker */}
               <div>
                 <label className="block text-sm font-medium text-violet-200 mb-2">Card Color</label>
@@ -206,6 +297,68 @@ export default function CreditCards() {
                 {editCard ? 'Update' : 'Add'} Card
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Pay Bill Dialog */}
+      {payDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(5,3,20,0.8)', backdropFilter: 'blur(6px)' }}>
+          <div className="card p-6 w-full max-w-sm mx-4">
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="text-base font-semibold text-white">Pay Credit Card Bill</h3>
+              <button onClick={() => setPayDialog(null)} className="btn-ghost p-1.5 rounded-lg">
+                <X className="w-4 h-4 text-violet-300" />
+              </button>
+            </div>
+            <p className="text-xs mb-5" style={{ color: 'rgba(196,181,253,0.5)' }}>
+              Card: {payDialog.card.name} · Outstanding: {formatINR(payDialog.card.outstanding)}
+            </p>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-violet-200 mb-1.5">Payment Amount (₹)</label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-violet-300 font-semibold">₹</span>
+                  <input type="number" min="1" max={payDialog.card.outstanding} step="0.01" placeholder="0"
+                    value={payDialog.amount}
+                    onChange={e => setPayDialog(d => ({ ...d, amount: e.target.value }))}
+                    className="input-field pl-9" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-violet-200 mb-1.5">Pay From Account</label>
+                <select value={payDialog.accountId}
+                  onChange={e => setPayDialog(d => ({ ...d, accountId: e.target.value }))}
+                  className="input-field">
+                  <option value="">Select account</option>
+                  {accounts.map(a => (
+                    <option key={a.id} value={a.id}>{a.name} — {formatINR(a.balance)}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-violet-200 mb-1.5">Payment Date</label>
+                <input type="date" value={payDialog.date}
+                  onChange={e => setPayDialog(d => ({ ...d, date: e.target.value }))}
+                  className="input-field" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-violet-200 mb-1.5">
+                  Note <span style={{ color: 'rgba(196,181,253,0.4)', fontWeight: 400 }}>(optional)</span>
+                </label>
+                <input type="text" placeholder="e.g., Full payment"
+                  value={payDialog.note}
+                  onChange={e => setPayDialog(d => ({ ...d, note: e.target.value }))}
+                  className="input-field" />
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button onClick={() => setPayDialog(null)} className="btn-ghost flex-1 py-2 rounded-xl text-sm">Cancel</button>
+              <button onClick={handlePayConfirm}
+                className="flex-1 py-2 rounded-xl text-sm font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/30 transition">
+                ✅ Confirm Payment
+              </button>
+            </div>
           </div>
         </div>
       )}

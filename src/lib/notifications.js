@@ -219,6 +219,35 @@ export function generateNotifications(state) {
     }
   }
 
+  // ── 8. Credit card due soon (within 5 days) ──────────────────────────────
+  const cards = state.creditCards || []
+  cards.forEach(card => {
+    if (!card.dueDate || !card.outstanding) return
+    const dueDay = parseInt(card.dueDate)
+    let daysUntil
+    if (dueDay >= today) {
+      daysUntil = dueDay - today
+    } else {
+      // Due date passed this month — next month
+      const nextDue = new Date(now.getFullYear(), now.getMonth() + 1, dueDay)
+      daysUntil = Math.round((nextDue - now) / (1000 * 60 * 60 * 24))
+    }
+    if (daysUntil <= 5) {
+      const whenLabel = daysUntil === 0 ? 'today' : daysUntil === 1 ? 'tomorrow' : `in ${daysUntil} days`
+      notifications.push({
+        id: `cc-due-${card.id}-${thisMonth}`,
+        type: 'warning',
+        title: `${card.name} payment due ${whenLabel}`,
+        message: `Outstanding: ${formatINR(card.outstanding)}${card.minDue ? ` · Min due: ${formatINR(card.minDue)}` : ''}`,
+        icon: '💳',
+        color: 'text-rose-400',
+        priority: 1,
+        time: dueLabel(daysUntil),
+        read: false,
+      })
+    }
+  })
+
   // ── Sort by priority, cap at 10 ───────────────────────────────────────────
   return notifications
     .sort((a, b) => a.priority - b.priority)
