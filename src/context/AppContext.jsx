@@ -26,6 +26,8 @@ const initialState = {
   theme:         loadFromStorage('ef_theme',         'dark'),
   currency:      loadFromStorage('ef_currency',      'INR'),
   privacyMode:   false,
+  userName:      loadFromStorage('ef_user_name',     ''),
+  onboarded:     loadFromStorage('ef_onboarded',     false),
 }
 
 function reducer(state, action) {
@@ -130,6 +132,10 @@ function reducer(state, action) {
     // Settings
     case 'SET_THEME':
       return { ...state, theme: action.payload }
+    case 'SET_USER_NAME':
+      return { ...state, userName: action.payload }
+    case 'SET_ONBOARDED':
+      return { ...state, onboarded: action.payload }
     case 'TOGGLE_PRIVACY':
       return { ...state, privacyMode: !state.privacyMode }
     case 'CLEAR_ALL_DATA':
@@ -188,6 +194,8 @@ export function AppProvider({ children }) {
     localStorage.setItem('ef_theme', JSON.stringify(state.theme))
     document.documentElement.classList.toggle('light', state.theme === 'light')
   }, [state.theme])
+  useEffect(() => { localStorage.setItem('ef_user_name', JSON.stringify(state.userName)) }, [state.userName])
+  useEffect(() => { localStorage.setItem('ef_onboarded', JSON.stringify(state.onboarded)) }, [state.onboarded])
 
   // Derived helpers
   const getCategory = (id) => state.categories.find(c => c.id === id)

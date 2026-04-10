@@ -16,6 +16,8 @@ export default function Settings() {
   const [importMsg, setImportMsg] = useState('')
   const [backupMsg, setBackupMsg] = useState('')
   const [confirmRestore, setConfirmRestore] = useState(null)  // holds parsed backup data
+  const [profileName, setProfileName] = useState(state.userName || '')
+  const [profileSaved, setProfileSaved] = useState(false)
 
   function openAddCat() { setCatForm(EMPTY_CAT); setEditCat(null); setShowCatForm(true) }
   function openEditCat(cat) { setCatForm({ ...cat }); setEditCat(cat); setShowCatForm(true) }
@@ -133,6 +135,7 @@ export default function Settings() {
   }
 
   const tabs = [
+    { id: 'profile', label: 'Profile' },
     { id: 'categories', label: 'Categories' },
     { id: 'data', label: 'Data & Export' },
     { id: 'appearance', label: 'Appearance' },
@@ -149,6 +152,36 @@ export default function Settings() {
           </button>
         ))}
       </div>
+
+      {/* Profile Tab */}
+      {activeTab === 'profile' && (
+        <div className="space-y-5">
+          <div className="card p-6 space-y-4">
+            <h3 className="text-base font-semibold text-white">Your Profile</h3>
+            <div>
+              <label className="block text-sm font-medium text-violet-200 mb-1.5">Your Name</label>
+              <input
+                type="text"
+                placeholder="Enter your name"
+                value={profileName}
+                onChange={e => setProfileName(e.target.value)}
+                className="input-field"
+                maxLength={40}
+              />
+            </div>
+            <button
+              onClick={() => {
+                dispatch({ type: 'SET_USER_NAME', payload: profileName.trim() })
+                setProfileSaved(true)
+                setTimeout(() => setProfileSaved(false), 2000)
+              }}
+              className="btn-primary px-6 py-2.5 rounded-xl text-sm font-semibold"
+            >
+              {profileSaved ? '✅ Saved!' : 'Save Name'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Categories Tab */}
       {activeTab === 'categories' && (

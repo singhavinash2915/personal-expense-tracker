@@ -6,9 +6,10 @@ import Header from './Header'
 import TransactionModal from '../ui/TransactionModal'
 import ReceiptScanner from '../ui/ReceiptScanner'
 import { useNAVScheduler } from '../../hooks/useNAVScheduler'
+import { useApp } from '../../context/AppContext'
 
 const pageMeta = {
-  '/':              { title: 'Dashboard',     subtitle: "Welcome back, Avinash. Here's your financial overview." },
+  '/':              { title: 'Dashboard',     subtitle: '' },
   '/transactions':  { title: 'Transactions',  subtitle: 'View and manage all your transactions.' },
   '/accounts':      { title: 'Accounts',      subtitle: 'Manage your bank accounts, wallets, and cash.' },
   '/analytics':     { title: 'Analytics',     subtitle: 'Insights and trends about your spending habits.' },
@@ -31,10 +32,15 @@ const BOTTOM_NAV = [
 
 export default function Layout() {
   const { pathname } = useLocation()
+  const { state } = useApp()
   const meta = pageMeta[pathname] || { title: 'ExpenseFlow', subtitle: '' }
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [showAddTx, setShowAddTx] = useState(false)
   const [showScanner, setShowScanner] = useState(false)
+
+  const subtitle = pathname === '/'
+    ? `Welcome back${state.userName ? ', ' + state.userName : ''}. Here's your financial overview.`
+    : meta.subtitle
 
   // Auto-refresh MF NAVs daily at 9 PM IST
   useNAVScheduler()
@@ -66,7 +72,7 @@ export default function Layout() {
       <main className="flex-1 md:ml-64 flex flex-col min-h-screen pb-16 md:pb-0">
         <Header
           title={meta.title}
-          subtitle={meta.subtitle}
+          subtitle={subtitle}
           onMenuOpen={() => setDrawerOpen(true)}
           onAddTx={() => setShowAddTx(true)}
         />

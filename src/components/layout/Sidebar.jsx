@@ -94,9 +94,9 @@ export default function Sidebar({ onClose }) {
       <div className="p-4" style={{ borderTop: '1px solid rgba(239,68,68,0.15)' }}>
         <div className="flex items-center gap-3 px-2 py-2">
           <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
-            style={{ background: 'linear-gradient(135deg,#7c3aed,#06b6d4)' }}>A</div>
+            style={{ background: 'linear-gradient(135deg,#7c3aed,#06b6d4)' }}>{state.userName?.[0]?.toUpperCase() || '?'}</div>
           <div className="min-w-0">
-            <p className="text-sm font-semibold gradient-text truncate">Avinash</p>
+            <p className="text-sm font-semibold gradient-text truncate">{state.userName || 'My Account'}</p>
             <p className="text-xs truncate" style={{ color: 'rgba(167,139,250,0.5)' }}>Personal Account</p>
           </div>
           <button
