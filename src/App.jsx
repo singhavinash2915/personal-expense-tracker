@@ -15,6 +15,8 @@ import Settings from './pages/Settings'
 import PrivacyPolicy from './pages/PrivacyPolicy'
 import HealthScore from './pages/HealthScore'
 import AIInsights from './pages/AIInsights'
+import Splits from './pages/Splits'
+import Goals from './pages/Goals'
 import Onboarding from './pages/Onboarding'
 
 function AppRoutes() {
@@ -36,6 +38,8 @@ function AppRoutes() {
           <Route path="privacy" element={<PrivacyPolicy />} />
           <Route path="health" element={<HealthScore />} />
           <Route path="ai-insights" element={<AIInsights />} />
+          <Route path="splits" element={<Splits />} />
+          <Route path="goals" element={<Goals />} />
         </Route>
       </Routes>
       <PWAInstallBanner />

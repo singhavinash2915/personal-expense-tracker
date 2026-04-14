@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, LineChart, Line, CartesianGrid, Legend
 } from 'recharts'
 import { useApp } from '../context/AppContext'
 import { formatINR, getMonthYear } from '../lib/utils'
+import { generateMonthlyReport } from '../lib/reportGenerator'
 
 const COLORS = ['#7c3aed','#06b6d4','#f59e0b','#e11d48','#10b981','#f97316','#8b5cf6','#0ea5e9']
 
@@ -23,6 +24,10 @@ const CustomTooltip = ({ active, payload, label }) => {
 export default function Analytics() {
   const { state, getCategory } = useApp()
   const [activeTab, setActiveTab] = useState('overview')
+
+  // Month for PDF export & heatmap
+  const currentMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`
+  const [heatmapMonth, setHeatmapMonth] = useState(currentMonth)
 
   // Build monthly data from transactions (last 6 months)
   const monthlyMap = {}
@@ -66,6 +71,45 @@ export default function Analytics() {
   // Top spending categories with % and bar
   const top5 = pieData.slice(0, 5)
 
+  // Heatmap data
+  const heatmapMonthLabel = new Date(heatmapMonth + '-01').toLocaleString('en-IN', { month: 'long', year: 'numeric' })
+
+  const heatmapDays = useMemo(() => {
+    const [y, m] = heatmapMonth.split('-').map(Number)
+    const firstDay = new Date(y, m - 1, 1)
+    const daysInMonth = new Date(y, m, 0).getDate()
+
+    // Calculate daily spending
+    const dailySpend = {}
+    state.transactions
+      .filter(t => t.type === 'expense' && t.date.startsWith(heatmapMonth))
+      .forEach(t => {
+        const day = parseInt(t.date.split('-')[2])
+        dailySpend[day] = (dailySpend[day] || 0) + t.amount
+      })
+
+    const maxSpend = Math.max(...Object.values(dailySpend), 1)
+
+    // Offset for first day (Mon=0)
+    let startOffset = (firstDay.getDay() + 6) % 7
+
+    const days = []
+    for (let i = 0; i < startOffset; i++) days.push({ empty: true })
+    for (let d = 1; d <= daysInMonth; d++) {
+      const spent = dailySpend[d] || 0
+      const intensity = spent / maxSpend
+      let color = 'rgba(109,40,217,0.05)'
+      if (spent > 0) {
+        if (intensity > 0.75) color = '#7c3aed'
+        else if (intensity > 0.5) color = 'rgba(124,58,237,0.65)'
+        else if (intensity > 0.25) color = 'rgba(124,58,237,0.4)'
+        else color = 'rgba(109,40,217,0.2)'
+      }
+      days.push({ day: d, date: `${heatmapMonth}-${String(d).padStart(2, '0')}`, spent, color, empty: false })
+    }
+    return days
+  }, [heatmapMonth, state.transactions])
+
   const tabs = [
     { id: 'overview', label: 'Overview' },
     { id: 'categories', label: 'Categories' },
@@ -75,13 +119,20 @@ export default function Analytics() {
   return (
     <div className="space-y-5">
       {/* Tab Bar */}
-      <div className="flex gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
         {tabs.map(t => (
           <button key={t.id} onClick={() => setActiveTab(t.id)}
             className={`px-5 py-2 rounded-xl text-sm font-semibold transition-all ${
               activeTab === t.id ? 'btn-primary' : 'btn-ghost'
             }`}>{t.label}</button>
         ))}
+        <div className="flex-1" />
+        <button
+          onClick={() => generateMonthlyReport(state, heatmapMonth, state.userName)}
+          className="btn-primary flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl"
+        >
+          Export PDF
+        </button>
       </div>
 
       {activeTab === 'overview' && (
@@ -228,6 +279,45 @@ export default function Analytics() {
           </div>
         </div>
       )}
+
+      {/* Spending Heatmap */}
+      <div className="card p-5">
+        <h3 className="text-base font-semibold text-white mb-4">Spending Heatmap</h3>
+        {/* Month navigation */}
+        <div className="flex items-center gap-3 mb-4">
+          <button onClick={() => setHeatmapMonth(prev => { const d = new Date(prev + '-01'); d.setMonth(d.getMonth() - 1); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}` })}
+            className="btn-ghost px-3 py-1 rounded-xl text-sm">&larr;</button>
+          <span className="text-sm font-medium text-white">{heatmapMonthLabel}</span>
+          <button onClick={() => setHeatmapMonth(next => { const d = new Date(next + '-01'); d.setMonth(d.getMonth() + 1); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}` })}
+            className="btn-ghost px-3 py-1 rounded-xl text-sm">&rarr;</button>
+        </div>
+        {/* Grid */}
+        <div className="grid grid-cols-7 gap-1.5">
+          {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d => (
+            <div key={d} className="text-center text-[10px] font-semibold pb-1" style={{ color: 'rgba(196,181,253,0.4)' }}>{d}</div>
+          ))}
+          {heatmapDays.map((day, i) => (
+            <div key={i}
+              className="aspect-square rounded-md flex items-center justify-center text-[10px] font-medium relative group cursor-default"
+              style={{
+                background: day.empty ? 'transparent' : day.color,
+                color: day.empty ? 'transparent' : day.spent > 0 ? 'rgba(255,255,255,0.8)' : 'rgba(196,181,253,0.3)',
+              }}
+              title={day.empty ? '' : `${day.date}: ${day.spent > 0 ? formatINR(day.spent) : 'No spending'}`}
+            >
+              {!day.empty && day.day}
+            </div>
+          ))}
+        </div>
+        {/* Legend */}
+        <div className="flex items-center gap-2 mt-3 justify-end">
+          <span className="text-[10px]" style={{ color: 'rgba(196,181,253,0.4)' }}>Less</span>
+          {['rgba(109,40,217,0.08)', 'rgba(109,40,217,0.2)', 'rgba(124,58,237,0.4)', 'rgba(124,58,237,0.65)', '#7c3aed'].map((c, i) => (
+            <div key={i} className="w-3 h-3 rounded-sm" style={{ background: c }} />
+          ))}
+          <span className="text-[10px]" style={{ color: 'rgba(196,181,253,0.4)' }}>More</span>
+        </div>
+      </div>
     </div>
   )
 }

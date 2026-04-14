@@ -23,6 +23,8 @@ const initialState = {
   mutualFunds:   loadFromStorage('ef_mutual_funds',  SAMPLE_MUTUAL_FUNDS),
   stocks:        loadFromStorage('ef_stocks',        SAMPLE_STOCKS),
   accounts:      loadFromStorage('ef_accounts',      SAMPLE_ACCOUNTS),
+  savingsGoals:  loadFromStorage('ef_savings_goals', []),
+  splits:        loadFromStorage('ef_splits',        []),
   theme:         loadFromStorage('ef_theme',         'dark'),
   currency:      loadFromStorage('ef_currency',      'INR'),
   privacyMode:   false,
@@ -129,6 +131,44 @@ function reducer(state, action) {
     case 'DELETE_ACCOUNT':
       return { ...state, accounts: state.accounts.filter(a => a.id !== action.payload) }
 
+    // Savings Goals
+    case 'ADD_SAVINGS_GOAL':
+      return { ...state, savingsGoals: [...state.savingsGoals, { ...action.payload, id: generateId() }] }
+    case 'UPDATE_SAVINGS_GOAL':
+      return { ...state, savingsGoals: state.savingsGoals.map(g => g.id === action.payload.id ? action.payload : g) }
+    case 'DELETE_SAVINGS_GOAL':
+      return { ...state, savingsGoals: state.savingsGoals.filter(g => g.id !== action.payload) }
+    case 'ADD_GOAL_DEPOSIT': {
+      const { goalId, amount, date } = action.payload
+      return {
+        ...state,
+        savingsGoals: state.savingsGoals.map(g =>
+          g.id === goalId
+            ? { ...g, saved: (g.saved || 0) + amount, deposits: [...(g.deposits || []), { amount, date, id: generateId() }] }
+            : g
+        )
+      }
+    }
+
+    // Splits
+    case 'ADD_SPLIT':
+      return { ...state, splits: [{ ...action.payload, id: generateId(), createdAt: new Date().toISOString() }, ...state.splits] }
+    case 'UPDATE_SPLIT':
+      return { ...state, splits: state.splits.map(s => s.id === action.payload.id ? action.payload : s) }
+    case 'DELETE_SPLIT':
+      return { ...state, splits: state.splits.filter(s => s.id !== action.payload) }
+    case 'SETTLE_SPLIT_MEMBER': {
+      const { splitId, memberName } = action.payload
+      return {
+        ...state,
+        splits: state.splits.map(s =>
+          s.id === splitId
+            ? { ...s, members: s.members.map(m => m.name === memberName ? { ...m, settled: true } : m) }
+            : s
+        )
+      }
+    }
+
     // Settings
     case 'SET_THEME':
       return { ...state, theme: action.payload }
@@ -149,6 +189,8 @@ function reducer(state, action) {
         stocks: [],
         accounts: [],
         categories: DEFAULT_CATEGORIES,
+        savingsGoals: [],
+        splits: [],
       }
     case 'IMPORT_DATA':
       return { ...state, transactions: action.payload }
@@ -171,6 +213,8 @@ function reducer(state, action) {
         mutualFunds:   Array.isArray(d.mutualFunds)   ? d.mutualFunds   : state.mutualFunds,
         stocks:        Array.isArray(d.stocks)        ? d.stocks        : state.stocks,
         categories:    Array.isArray(d.categories)    ? d.categories    : state.categories,
+        savingsGoals:  Array.isArray(d.savingsGoals)  ? d.savingsGoals  : state.savingsGoals,
+        splits:        Array.isArray(d.splits)        ? d.splits        : state.splits,
       }
     }
 
@@ -190,6 +234,8 @@ export function AppProvider({ children }) {
   useEffect(() => { localStorage.setItem('ef_mutual_funds',  JSON.stringify(state.mutualFunds)) },   [state.mutualFunds])
   useEffect(() => { localStorage.setItem('ef_stocks',        JSON.stringify(state.stocks)) },        [state.stocks])
   useEffect(() => { localStorage.setItem('ef_accounts',      JSON.stringify(state.accounts)) },      [state.accounts])
+  useEffect(() => { localStorage.setItem('ef_splits',        JSON.stringify(state.splits)) },        [state.splits])
+  useEffect(() => { localStorage.setItem('ef_savings_goals', JSON.stringify(state.savingsGoals)) },  [state.savingsGoals])
   useEffect(() => {
     localStorage.setItem('ef_theme', JSON.stringify(state.theme))
     document.documentElement.classList.toggle('light', state.theme === 'light')

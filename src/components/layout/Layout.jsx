@@ -21,6 +21,8 @@ const pageMeta = {
   '/privacy':       { title: 'Privacy Policy', subtitle: 'How we handle your data.' },
   '/health':        { title: 'Health Score',   subtitle: 'How financially healthy are you?' },
   '/ai-insights':   { title: 'AI Insights',    subtitle: 'Smart analysis of your financial patterns.' },
+  '/splits':         { title: 'Split Bills',    subtitle: 'Split expenses with friends and track settlements.' },
+  '/goals':          { title: 'Savings Goals',  subtitle: 'Track progress towards your financial goals.' },
 }
 
 const BOTTOM_NAV = [

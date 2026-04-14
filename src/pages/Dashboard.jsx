@@ -1,12 +1,14 @@
 import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
+import { PieChart, Pie, Cell, BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { useApp } from '../context/AppContext'
 import { formatINR, formatDate, currentMonthYear } from '../lib/utils'
 import { privateValue } from '../lib/privacy'
 import StatCard from '../components/ui/StatCard'
+import AnimatedNumber from '../components/ui/AnimatedNumber'
 import TransactionModal from '../components/ui/TransactionModal'
 import { calculateHealthScore } from '../lib/healthScore'
+import { calculateNetWorth } from '../lib/netWorth'
 import { generateInsights } from '../lib/insights'
 import InsightCard from '../components/ui/InsightCard'
 
@@ -68,6 +70,7 @@ export default function Dashboard() {
   const savingsRate = income > 0 ? ((income - expenses) / income * 100).toFixed(1) : 0
   const budgets = getBudgetUsage(month)
   const healthScore = useMemo(() => calculateHealthScore(state), [state])
+  const netWorthData = useMemo(() => calculateNetWorth(state), [state])
 
   // Category spending breakdown
   const categorySpend = {}
@@ -124,12 +127,41 @@ export default function Dashboard() {
         </div>
       </Link>
 
+      {/* Net Worth Banner */}
+      <div className="card p-5">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'rgba(196,181,253,0.5)' }}>Net Worth</h3>
+          <span className="text-xs" style={{ color: 'rgba(196,181,253,0.4)' }}>Assets − Liabilities</span>
+        </div>
+        <p className={`text-2xl md:text-3xl font-bold ${netWorthData.netWorth >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+          {privacyMode ? '••••••' : <AnimatedNumber value={netWorthData.netWorth} formatter={formatINR} />}
+        </p>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
+          {[
+            { label: 'Bank Accounts', value: netWorthData.breakdown.bankBalance, icon: '🏦', color: 'text-violet-300' },
+            { label: 'Mutual Funds', value: netWorthData.breakdown.mfValue, icon: '📊', color: 'text-cyan-400' },
+            { label: 'Stocks', value: netWorthData.breakdown.stockValue, icon: '📈', color: 'text-emerald-400' },
+            { label: 'Credit Card Debt', value: -netWorthData.breakdown.ccDebt, icon: '💳', color: 'text-rose-400' },
+          ].map(({ label, value, icon, color }) => (
+            <div key={label} className="flex items-center gap-2">
+              <span className="text-lg">{icon}</span>
+              <div>
+                <p className="text-[10px]" style={{ color: 'rgba(196,181,253,0.4)' }}>{label}</p>
+                <p className={`text-sm font-semibold ${color}`}>
+                  {privacyMode ? '••••' : formatINR(Math.abs(value))}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* Stat Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-5">
-        <StatCard gradient="stat-1" icon="💰" label="Total Balance"  value={privateValue(balance, privacyMode, formatINR)}   trend={balanceTrend.text}  trendUp={balanceTrend.up}  badge="This Month" />
-        <StatCard gradient="stat-2" icon="📈" label="Total Income"   value={privateValue(income, privacyMode, formatINR)}    trend={incomeTrend.text}   trendUp={incomeTrend.up}   badge="This Month" />
-        <StatCard gradient="stat-3" icon="📉" label="Total Expenses" value={privateValue(expenses, privacyMode, formatINR)}  trend={expenseTrend.text}  trendUp={expenseTrend.up}  badge="This Month" />
-        <StatCard gradient="stat-4" icon="🏆" label="Savings Rate"   value={privacyMode ? '••••' : `${savingsRate}%`}        trend={savingsTrend.text}  trendUp={savingsTrend.up}  badge="This Month" />
+        <StatCard gradient="stat-1" icon="💰" label="Total Balance"  value={privacyMode ? '••••••' : <AnimatedNumber value={balance} formatter={formatINR} />}   trend={balanceTrend.text}  trendUp={balanceTrend.up}  badge="This Month" />
+        <StatCard gradient="stat-2" icon="📈" label="Total Income"   value={privacyMode ? '••••••' : <AnimatedNumber value={income} formatter={formatINR} />}    trend={incomeTrend.text}   trendUp={incomeTrend.up}   badge="This Month" />
+        <StatCard gradient="stat-3" icon="📉" label="Total Expenses" value={privacyMode ? '••••••' : <AnimatedNumber value={expenses} formatter={formatINR} />}  trend={expenseTrend.text}  trendUp={expenseTrend.up}  badge="This Month" />
+        <StatCard gradient="stat-4" icon="🏆" label="Savings Rate"   value={privacyMode ? '••••' : <><AnimatedNumber value={parseFloat(savingsRate)} />%</>}     trend={savingsTrend.text}  trendUp={savingsTrend.up}  badge="This Month" />
       </div>
 
       {/* Charts Row */}
@@ -147,13 +179,24 @@ export default function Dashboard() {
             </div>
           </div>
           <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={monthlyData} barGap={4}>
-              <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: 'rgba(196,181,253,0.5)', fontSize: 12 }} />
-              <YAxis hide />
-              <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(124,58,237,0.06)' }} />
-              <Bar dataKey="income"  name="Income"  fill="#34d399" radius={[4,4,0,0]} />
-              <Bar dataKey="expense" name="Expenses" fill="#fb7185" radius={[4,4,0,0]} />
-            </BarChart>
+            <AreaChart data={monthlyData}>
+              <defs>
+                <linearGradient id="incomeGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#10b981" stopOpacity={0.3} />
+                  <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="expenseGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#e11d48" stopOpacity={0.3} />
+                  <stop offset="100%" stopColor="#e11d48" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(109,40,217,0.1)" />
+              <XAxis dataKey="month" tick={{ fill: 'rgba(196,181,253,0.5)', fontSize: 12 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fill: 'rgba(196,181,253,0.4)', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => `₹${(v/1000).toFixed(0)}k`} />
+              <Tooltip content={<CustomTooltip />} />
+              <Area type="monotone" dataKey="income" stroke="#10b981" strokeWidth={2} fill="url(#incomeGrad)" name="Income" />
+              <Area type="monotone" dataKey="expense" stroke="#e11d48" strokeWidth={2} fill="url(#expenseGrad)" name="Expense" />
+            </AreaChart>
           </ResponsiveContainer>
         </div>
 

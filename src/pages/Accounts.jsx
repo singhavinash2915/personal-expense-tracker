@@ -4,6 +4,7 @@ import { Plus, Trash2, Edit2, X, Landmark, Upload } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { formatINR, generateId } from '../lib/utils'
 import { privateValue } from '../lib/privacy'
+import AnimatedNumber from '../components/ui/AnimatedNumber'
 import StatementUploadModal from '../components/ui/StatementUploadModal'
 
 const ACCOUNT_TYPES = ['savings', 'current', 'salary', 'wallet', 'cash', 'fd', 'nre', 'nro']
@@ -72,10 +73,10 @@ export default function Accounts() {
       {/* Summary */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         {[
-          { label: 'Net Worth',       value: privateValue(totalBalance, privacyMode, formatINR),  icon: '💰', color: 'text-violet-300' },
-          { label: 'Savings/Salary',  value: privateValue(savingsTotal, privacyMode, formatINR),  icon: '🏦', color: 'text-cyan-400'   },
-          { label: 'Current/Business',value: privateValue(currentTotal, privacyMode, formatINR),  icon: '🏢', color: 'text-amber-400'  },
-          { label: 'Wallet & Cash',   value: privateValue(walletTotal,  privacyMode, formatINR),  icon: '👛', color: 'text-emerald-400'},
+          { label: 'Net Worth',       value: privacyMode ? '••••••' : <AnimatedNumber value={totalBalance} formatter={formatINR} />,  icon: '💰', color: 'text-violet-300' },
+          { label: 'Savings/Salary',  value: privacyMode ? '••••••' : <AnimatedNumber value={savingsTotal} formatter={formatINR} />,  icon: '🏦', color: 'text-cyan-400'   },
+          { label: 'Current/Business',value: privacyMode ? '••••••' : <AnimatedNumber value={currentTotal} formatter={formatINR} />,  icon: '🏢', color: 'text-amber-400'  },
+          { label: 'Wallet & Cash',   value: privacyMode ? '••••••' : <AnimatedNumber value={walletTotal}  formatter={formatINR} />,  icon: '👛', color: 'text-emerald-400'},
         ].map(({ label, value, icon, color }) => (
           <div key={label} className="card p-4 flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-violet-500/10 flex items-center justify-center text-xl">{icon}</div>
