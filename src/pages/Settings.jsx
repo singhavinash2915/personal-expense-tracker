@@ -139,6 +139,7 @@ export default function Settings() {
     { id: 'categories', label: 'Categories' },
     { id: 'data', label: 'Data & Export' },
     { id: 'appearance', label: 'Appearance' },
+    { id: 'security', label: 'Security' },
   ]
 
   return (
@@ -370,6 +371,63 @@ export default function Settings() {
               Version 1.0.0 · Built with React + Vite + Tailwind CSS<br />
               Data stored locally in your browser · No server, no sync
             </p>
+          </div>
+        </div>
+      )}
+
+      {/* Security Tab */}
+      {activeTab === 'security' && (
+        <div className="space-y-4">
+          <div className="card p-6">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1">
+                <h4 className="text-base font-semibold text-white mb-1 flex items-center gap-2">
+                  🔐 Biometric Lock
+                </h4>
+                <p className="text-sm mb-3" style={{ color: 'rgba(196,181,253,0.6)' }}>
+                  Require Face ID / Touch ID / Fingerprint to open the app. Re-locks when you switch away.
+                </p>
+                <p className="text-xs" style={{ color: 'rgba(196,181,253,0.4)' }}>
+                  Works on iOS and Android. On web, this is disabled.
+                </p>
+              </div>
+              <button
+                onClick={() => dispatch({ type: 'SET_BIOMETRIC_LOCK', payload: !state.biometricLock })}
+                className={`relative w-14 h-8 rounded-full transition flex-shrink-0 ${
+                  state.biometricLock ? 'bg-emerald-500' : 'bg-slate-600'
+                }`}
+              >
+                <span className={`absolute top-1 w-6 h-6 rounded-full bg-white transition-transform ${
+                  state.biometricLock ? 'translate-x-7' : 'translate-x-1'
+                }`} />
+              </button>
+            </div>
+          </div>
+
+          <div className="card p-6">
+            <h4 className="text-base font-semibold text-white mb-1 flex items-center gap-2">
+              💬 SMS Auto-Import
+            </h4>
+            <p className="text-sm mb-4" style={{ color: 'rgba(196,181,253,0.6)' }}>
+              Automatically capture transactions from bank and UPI SMS messages.
+            </p>
+            <Link to="/sms-import" className="inline-block px-5 py-2 rounded-xl text-sm font-semibold text-white"
+              style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}>
+              Open SMS Import →
+            </Link>
+          </div>
+
+          <div className="card p-6">
+            <h4 className="text-base font-semibold text-white mb-1 flex items-center gap-2">
+              🔗 Connect Banks (AA)
+            </h4>
+            <p className="text-sm mb-4" style={{ color: 'rgba(196,181,253,0.6)' }}>
+              Sync accounts securely via RBI's Account Aggregator framework.
+            </p>
+            <Link to="/connect-bank" className="inline-block px-5 py-2 rounded-xl text-sm font-semibold text-white"
+              style={{ background: 'linear-gradient(135deg, #059669, #10b981)' }}>
+              Connect a Bank →
+            </Link>
           </div>
         </div>
       )}

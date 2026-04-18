@@ -1,8 +1,10 @@
+import { useEffect, useState } from 'react'
 import { HashRouter, Routes, Route } from 'react-router-dom'
 import { AppProvider } from './context/AppContext'
 import { useApp } from './context/AppContext'
 import Layout from './components/layout/Layout'
 import PWAInstallBanner from './components/ui/PWAInstallBanner'
+import BiometricLock from './components/ui/BiometricLock'
 import Dashboard from './pages/Dashboard'
 import Transactions from './pages/Transactions'
 import Analytics from './pages/Analytics'
@@ -18,10 +20,29 @@ import AIInsights from './pages/AIInsights'
 import Splits from './pages/Splits'
 import Goals from './pages/Goals'
 import Onboarding from './pages/Onboarding'
+import SMSImport from './pages/SMSImport'
+import MonthlyDigest from './pages/MonthlyDigest'
+import ConnectBank from './pages/ConnectBank'
+import DailySnapshot from './pages/DailySnapshot'
 
 function AppRoutes() {
   const { state } = useApp()
+  const [unlocked, setUnlocked] = useState(false)
+
+  // Lock the app when it goes to background (if biometric is enabled)
+  useEffect(() => {
+    function onVisibility() {
+      if (document.visibilityState === 'hidden' && state.biometricLock) {
+        setUnlocked(false)
+      }
+    }
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => document.removeEventListener('visibilitychange', onVisibility)
+  }, [state.biometricLock])
+
   if (!state.onboarded) return <Onboarding />
+  if (state.biometricLock && !unlocked) return <BiometricLock onUnlock={() => setUnlocked(true)} />
+
   return (
     <HashRouter>
       <Routes>
@@ -40,6 +61,10 @@ function AppRoutes() {
           <Route path="ai-insights" element={<AIInsights />} />
           <Route path="splits" element={<Splits />} />
           <Route path="goals" element={<Goals />} />
+          <Route path="sms-import" element={<SMSImport />} />
+          <Route path="digest" element={<MonthlyDigest />} />
+          <Route path="connect-bank" element={<ConnectBank />} />
+          <Route path="snapshot" element={<DailySnapshot />} />
         </Route>
       </Routes>
       <PWAInstallBanner />

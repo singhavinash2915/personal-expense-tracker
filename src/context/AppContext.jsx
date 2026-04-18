@@ -30,6 +30,7 @@ const initialState = {
   privacyMode:   false,
   userName:      loadFromStorage('ef_user_name',     ''),
   onboarded:     loadFromStorage('ef_onboarded',     false),
+  biometricLock: loadFromStorage('ef_biometric_lock', false),
 }
 
 function reducer(state, action) {
@@ -178,6 +179,8 @@ function reducer(state, action) {
       return { ...state, onboarded: action.payload }
     case 'TOGGLE_PRIVACY':
       return { ...state, privacyMode: !state.privacyMode }
+    case 'SET_BIOMETRIC_LOCK':
+      return { ...state, biometricLock: action.payload }
     case 'CLEAR_ALL_DATA':
       return {
         ...state,
@@ -242,6 +245,7 @@ export function AppProvider({ children }) {
   }, [state.theme])
   useEffect(() => { localStorage.setItem('ef_user_name', JSON.stringify(state.userName)) }, [state.userName])
   useEffect(() => { localStorage.setItem('ef_onboarded', JSON.stringify(state.onboarded)) }, [state.onboarded])
+  useEffect(() => { localStorage.setItem('ef_biometric_lock', JSON.stringify(state.biometricLock)) }, [state.biometricLock])
 
   // Derived helpers
   const getCategory = (id) => state.categories.find(c => c.id === id)

@@ -48,81 +48,65 @@ export default function Transactions() {
   }
 
   return (
-    <div className="space-y-5">
-      {/* Summary Bar */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-        <div className="card p-4 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-xl">📈</div>
-          <div>
-            <p className="text-xs" style={{ color: 'rgba(196,181,253,0.5)' }}>Filtered Income</p>
-            <p className="text-lg font-bold text-emerald-400">{formatINR(totalIncome)}</p>
+    <div className="space-y-3 md:space-y-5">
+      {/* Summary Bar — compact 2x2 on mobile */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
+        {[
+          { icon: '📈', label: 'Income', value: formatINR(totalIncome), color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+          { icon: '📉', label: 'Expenses', value: formatINR(totalExpense), color: 'text-rose-400', bg: 'bg-rose-500/10' },
+          { icon: '↔️', label: 'Transfers', value: formatINR(totalTransfer), color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
+          { icon: '🔢', label: 'Records', value: filtered.length, color: 'text-white', bg: 'bg-violet-500/10' },
+        ].map(({ icon, label, value, color, bg }) => (
+          <div key={label} className="card p-2.5 md:p-4 flex items-center gap-2 md:gap-3">
+            <div className={`w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl ${bg} flex items-center justify-center text-base md:text-xl`}>{icon}</div>
+            <div className="min-w-0">
+              <p className="text-[10px] md:text-xs truncate" style={{ color: 'rgba(196,181,253,0.5)' }}>{label}</p>
+              <p className={`text-sm md:text-lg font-bold ${color}`}>{value}</p>
+            </div>
           </div>
-        </div>
-        <div className="card p-4 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-rose-500/10 flex items-center justify-center text-xl">📉</div>
-          <div>
-            <p className="text-xs" style={{ color: 'rgba(196,181,253,0.5)' }}>Filtered Expenses</p>
-            <p className="text-lg font-bold text-rose-400">{formatINR(totalExpense)}</p>
-          </div>
-        </div>
-        <div className="card p-4 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center text-xl">↔️</div>
-          <div>
-            <p className="text-xs" style={{ color: 'rgba(196,181,253,0.5)' }}>Transfers</p>
-            <p className="text-lg font-bold text-cyan-400">{formatINR(totalTransfer)}</p>
-          </div>
-        </div>
-        <div className="card p-4 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-violet-500/10 flex items-center justify-center text-xl">🔢</div>
-          <div>
-            <p className="text-xs" style={{ color: 'rgba(196,181,253,0.5)' }}>Total Records</p>
-            <p className="text-lg font-bold text-white">{filtered.length}</p>
-          </div>
-        </div>
+        ))}
       </div>
 
-      {/* Filters */}
-      <div className="card p-4">
-        <div className="flex flex-wrap items-center gap-3">
-          {/* Search */}
-          <div className="relative flex-1 min-w-[200px]">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'rgba(167,139,250,0.45)' }} />
-            <input type="text" placeholder="Search transactions..." value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="input-field pl-9 py-2 text-sm w-full" />
-          </div>
+      {/* Filters — stacked on mobile */}
+      <div className="card p-2.5 md:p-4 space-y-2 md:space-y-0">
+        {/* Search — full width on mobile */}
+        <div className="relative w-full">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'rgba(167,139,250,0.45)' }} />
+          <input type="text" placeholder="Search transactions..." value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="input-field pl-9 py-2 text-sm w-full" />
+        </div>
 
-          {/* Type Filter */}
-          <div className="flex gap-1">
-            {TYPES.map(t => (
-              <button key={t} onClick={() => setTypeFilter(t)}
-                className={`px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
-                  typeFilter === t ? 'btn-primary' : 'btn-ghost'
-                }`}>{t}</button>
-            ))}
-          </div>
+        {/* Type pills — horizontally scrollable on mobile */}
+        <div className="flex gap-1.5 overflow-x-auto pb-0.5 md:pb-0 md:flex-wrap md:mt-3">
+          {TYPES.map(t => (
+            <button key={t} onClick={() => setTypeFilter(t)}
+              className={`px-3 py-1.5 md:py-2 rounded-lg md:rounded-xl text-xs font-semibold transition-all flex-shrink-0 ${
+                typeFilter === t ? 'btn-primary' : 'btn-ghost'
+              }`}>{t}</button>
+          ))}
+        </div>
 
-          {/* Category Filter */}
+        {/* Selects — grid on mobile, flex on desktop */}
+        <div className="grid grid-cols-2 gap-2 md:flex md:flex-wrap md:gap-3 md:mt-3">
           <select value={catFilter} onChange={e => setCatFilter(e.target.value)}
-            className="input-field py-2 text-sm">
+            className="input-field py-1.5 md:py-2 text-xs md:text-sm">
             <option value="">All Categories</option>
             {state.categories.map(c => (
               <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
             ))}
           </select>
 
-          {/* Account Filter */}
           <select value={accFilter} onChange={e => setAccFilter(e.target.value)}
-            className="input-field py-2 text-sm">
+            className="input-field py-1.5 md:py-2 text-xs md:text-sm">
             <option value="">All Accounts</option>
             {accounts.map(a => (
-              <option key={a.id} value={a.id}>{a.name} — {a.bank}</option>
+              <option key={a.id} value={a.id}>{a.name}</option>
             ))}
           </select>
 
-          {/* Credit Card Filter */}
           {(state.creditCards || []).length > 0 && (
-            <select value={ccFilter} onChange={e => setCCFilter(e.target.value)} className="input-field text-sm py-1.5 min-w-[160px]">
+            <select value={ccFilter} onChange={e => setCCFilter(e.target.value)} className="input-field text-xs md:text-sm py-1.5">
               <option value="">All Cards</option>
               {(state.creditCards || []).map(c => (
                 <option key={c.id} value={c.id}>💳 {c.name}</option>
@@ -131,17 +115,54 @@ export default function Transactions() {
           )}
 
           <button onClick={() => setShowAdd(true)}
-            className="btn-primary flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl ml-auto">
+            className="btn-primary flex items-center justify-center gap-2 px-3 py-1.5 md:px-4 md:py-2 text-xs md:text-sm font-semibold rounded-lg md:rounded-xl md:ml-auto">
             <Plus className="w-4 h-4" /> Add
           </button>
         </div>
       </div>
 
-      {/* Table */}
-      <div className="card overflow-hidden overflow-x-auto">
+      {/* Mobile: Card list / Desktop: Table */}
+      {/* Mobile card list */}
+      <div className="md:hidden space-y-1.5">
+        {filtered.length === 0 ? (
+          <div className="card p-8 text-center text-sm" style={{ color: 'rgba(196,181,253,0.4)' }}>No transactions found</div>
+        ) : filtered.map(tx => {
+          const cat = getCategory(tx.categoryId)
+          return (
+            <div key={tx.id} className="card p-3 flex items-center gap-3 active:scale-[0.99] transition-transform"
+              onClick={() => setEditTx(tx)}>
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0 ${
+                tx.type === 'income' ? 'bg-emerald-500/10' : tx.type === 'transfer' ? 'bg-cyan-500/10' : 'bg-rose-500/10'
+              }`}>{cat?.icon || '💳'}</div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-medium text-white truncate">{tx.description}</p>
+                  <span className={`text-sm font-bold flex-shrink-0 ${tx.type === 'income' ? 'text-emerald-400' : tx.type === 'transfer' ? 'text-cyan-400' : 'text-rose-400'}`}>
+                    {tx.type === 'income' ? '+' : tx.type === 'transfer' ? '↔' : '-'}{formatINR(tx.amount)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between mt-0.5">
+                  <p className="text-[11px] truncate" style={{ color: 'rgba(196,181,253,0.5)' }}>
+                    {formatDate(tx.date)} · {cat?.name}
+                  </p>
+                  <div className="flex gap-1 flex-shrink-0 ml-2">
+                    <button onClick={(e) => { e.stopPropagation(); setConfirmDelete(tx.id) }}
+                      className="p-1.5 rounded-lg text-rose-400 active:bg-rose-500/10">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Desktop table */}
+      <div className="hidden md:block card overflow-hidden overflow-x-auto">
         <table className="w-full min-w-[640px]">
           <thead>
-            <tr style={{ borderBottom: '1px solid rgba(109,40,217,0.2)' }}>
+            <tr style={{ borderBottom: '1px solid rgba(99,102,241,0.15)' }}>
               {['Date', 'Description', 'Category', 'Account', 'Type', 'Amount', 'Actions'].map(h => (
                 <th key={h} className="text-left px-5 py-3.5 text-xs font-semibold uppercase tracking-wider"
                   style={{ color: 'rgba(196,181,253,0.5)' }}>{h}</th>
@@ -155,7 +176,7 @@ export default function Transactions() {
               const cat = getCategory(tx.categoryId)
               const acc = accounts.find(a => a.id === tx.accountId)
               return (
-                <tr key={tx.id} className="tr-hover" style={{ borderBottom: '1px solid rgba(109,40,217,0.08)' }}>
+                <tr key={tx.id} className="tr-hover" style={{ borderBottom: '1px solid rgba(99,102,241,0.06)' }}>
                   <td className="px-5 py-3.5 text-sm" style={{ color: 'rgba(196,181,253,0.6)' }}>{formatDate(tx.date)}</td>
                   <td className="px-5 py-3.5">
                     <p className="text-sm font-medium text-white">{tx.description}</p>
@@ -163,7 +184,7 @@ export default function Transactions() {
                     {tx.creditCardId && (() => {
                       const cc = (state.creditCards || []).find(c => c.id === tx.creditCardId)
                       return cc ? (
-                        <p className="text-xs mt-0.5" style={{ color: 'rgba(139,92,246,0.7)' }}>💳 {cc.name} (••{cc.last4})</p>
+                        <p className="text-xs mt-0.5" style={{ color: 'rgba(99,102,241,0.7)' }}>💳 {cc.name} (••{cc.last4})</p>
                       ) : null
                     })()}
                     {tx.notes && <p className="text-xs mt-0.5 truncate max-w-[200px]" style={{ color: 'rgba(196,181,253,0.4)' }}>{tx.notes}</p>}
@@ -211,7 +232,7 @@ export default function Transactions() {
 
       {/* Delete Confirm */}
       {confirmDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(5,3,20,0.8)' }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(8,10,20,0.8)' }}>
           <div className="card p-6 w-80 text-center">
             <p className="text-2xl mb-3">🗑️</p>
             <p className="text-white font-semibold mb-1">Delete Transaction?</p>

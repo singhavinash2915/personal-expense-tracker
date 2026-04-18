@@ -8,10 +8,10 @@ const PANEL_STYLES = {
     width: '360px',
     maxWidth: 'calc(100vw - 32px)',
     maxHeight: '480px',
-    background: 'rgba(13,10,35,0.98)',
-    border: '1px solid rgba(109,40,217,0.25)',
+    background: 'rgba(20,24,40,0.98)',
+    border: '1px solid rgba(99,102,241,0.2)',
     borderRadius: '1rem',
-    boxShadow: '0 25px 50px -12px rgba(0,0,0,0.8), 0 0 0 1px rgba(109,40,217,0.1)',
+    boxShadow: '0 25px 50px -12px rgba(0,0,0,0.8), 0 0 0 1px rgba(99,102,241,0.08)',
     overflowY: 'auto',
     zIndex: 50,
     display: 'flex',
@@ -22,10 +22,10 @@ const PANEL_STYLES = {
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: '14px 16px 10px',
-    borderBottom: '1px solid rgba(109,40,217,0.15)',
+    borderBottom: '1px solid rgba(99,102,241,0.12)',
     position: 'sticky',
     top: 0,
-    background: 'rgba(13,10,35,0.99)',
+    background: 'rgba(20,24,40,0.99)',
     zIndex: 1,
     flexShrink: 0,
   },
@@ -42,7 +42,7 @@ const PANEL_STYLES = {
     minWidth: '20px',
     height: '20px',
     padding: '0 5px',
-    background: '#e11d48',
+    background: '#6366f1',
     borderRadius: '999px',
     fontSize: '10px',
     fontWeight: 700,
@@ -52,7 +52,7 @@ const PANEL_STYLES = {
   markAllBtn: {
     fontSize: '0.72rem',
     fontWeight: 600,
-    color: 'rgba(167,139,250,0.8)',
+    color: 'rgba(129,140,248,0.8)',
     background: 'none',
     border: 'none',
     cursor: 'pointer',
@@ -67,7 +67,7 @@ const PANEL_STYLES = {
   emptyState: {
     padding: '40px 16px',
     textAlign: 'center',
-    color: 'rgba(167,139,250,0.5)',
+    color: 'rgba(148,163,184,0.5)',
     fontSize: '0.85rem',
   },
   emptyIcon: {
@@ -82,8 +82,8 @@ const PANEL_STYLES = {
     padding: '11px 14px',
     cursor: 'default',
     transition: 'background 0.12s',
-    background: unread ? 'rgba(109,40,217,0.06)' : 'transparent',
-    borderLeft: unread ? '3px solid rgba(139,92,246,0.55)' : '3px solid transparent',
+    background: unread ? 'rgba(99,102,241,0.06)' : 'transparent',
+    borderLeft: unread ? '3px solid rgba(99,102,241,0.5)' : '3px solid transparent',
   }),
   iconBox: {
     width: '36px',
@@ -109,19 +109,19 @@ const PANEL_STYLES = {
   },
   itemTime: {
     fontSize: '0.65rem',
-    color: 'rgba(167,139,250,0.45)',
+    color: 'rgba(148,163,184,0.45)',
     whiteSpace: 'nowrap',
     flexShrink: 0,
     marginTop: '1px',
   },
   itemMessage: {
     fontSize: '0.75rem',
-    color: 'rgba(196,181,253,0.55)',
+    color: 'rgba(148,163,184,0.6)',
     lineHeight: 1.45,
   },
   divider: {
     height: '1px',
-    background: 'rgba(109,40,217,0.08)',
+    background: 'rgba(99,102,241,0.08)',
     margin: '0 14px',
   },
 }
@@ -193,7 +193,7 @@ export default function NotificationPanel({ open, onClose, notifications = [] })
         {notifications.length === 0 ? (
           <div style={PANEL_STYLES.emptyState}>
             <span style={PANEL_STYLES.emptyIcon}>🔔</span>
-            <p style={{ margin: 0, fontWeight: 600, color: 'rgba(196,181,253,0.6)' }}>All clear!</p>
+            <p style={{ margin: 0, fontWeight: 600, color: 'rgba(148,163,184,0.6)' }}>All clear!</p>
             <p style={{ margin: '4px 0 0', fontSize: '0.72rem' }}>No notifications right now.</p>
           </div>
         ) : (

@@ -47,5 +47,7 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>NSFaceIDUsageDescription</key>
+	<string>ExpenseFlow uses Face ID to securely unlock your financial data.</string>
 </dict>
 </plist>

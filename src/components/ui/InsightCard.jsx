@@ -13,14 +13,15 @@ export default function InsightCard({ insight }) {
     'text-emerald-400': '#34d399',
     'text-rose-400':    '#fb7185',
     'text-cyan-400':    '#22d3ee',
+    'text-violet-400':  '#a78bfa',
   }
-  const accentColor = accentMap[color] || '#7c3aed'
+  const accentColor = accentMap[color] || '#6366f1'
 
   return (
     <div
       style={{
-        background: 'rgba(13,10,35,0.6)',
-        border: '1px solid rgba(109,40,217,0.2)',
+        background: 'rgba(22,27,45,0.6)',
+        border: '1px solid rgba(99,102,241,0.15)',
         borderLeft: `3px solid ${accentColor}`,
         borderRadius: '0.75rem',
         padding: '0.875rem 1rem',
@@ -65,7 +66,7 @@ export default function InsightCard({ insight }) {
             margin: 0,
             fontSize: '0.8125rem',
             lineHeight: 1.5,
-            color: 'rgba(196,181,253,0.8)',
+            color: 'rgba(148,163,184,0.85)',
           }}
         >
           {message}

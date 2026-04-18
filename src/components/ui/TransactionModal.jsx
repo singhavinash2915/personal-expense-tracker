@@ -25,20 +25,30 @@ export default function TransactionModal({ onClose, existing }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-end">
-      <div className="absolute inset-0" style={{ background: 'rgba(5,3,20,0.7)', backdropFilter: 'blur(6px)' }}
+    <div className="fixed inset-0 z-50 flex items-end md:items-start md:justify-end">
+      {/* Backdrop */}
+      <div className="absolute inset-0" style={{ background: 'rgba(8,10,20,0.7)', backdropFilter: 'blur(6px)' }}
         onClick={onClose} />
-      <div className="relative h-full w-[480px] flex flex-col animate-slide-in overflow-y-auto"
-        style={{ background: 'rgba(13,10,35,0.98)', borderLeft: '1px solid rgba(109,40,217,0.2)' }}>
 
-        <div className="flex items-center justify-between p-8 pb-4">
-          <h3 className="text-xl font-semibold text-white">{existing ? 'Edit' : 'Add'} Transaction</h3>
+      {/* Panel — bottom sheet on mobile, side panel on desktop */}
+      <div className="relative w-full md:w-[480px] md:h-full max-h-[92vh] md:max-h-full flex flex-col overflow-y-auto rounded-t-2xl md:rounded-none animate-sheet-up md:animate-slide-in"
+        style={{ background: 'rgba(20,24,40,0.98)', borderLeft: 'none', borderTop: '1px solid rgba(99,102,241,0.15)' }}>
+
+        {/* Mobile drag handle */}
+        <div className="md:hidden flex justify-center pt-3 pb-1">
+          <div className="w-10 h-1 rounded-full bg-white/20" />
+        </div>
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 md:px-8 py-3 md:py-4 md:pt-8">
+          <h3 className="text-lg md:text-xl font-semibold text-white">{existing ? 'Edit' : 'Add'} Transaction</h3>
           <button onClick={onClose} className="btn-ghost p-2 rounded-xl">
-            <X className="w-5 h-5 text-violet-300" />
+            <X className="w-5 h-5 text-slate-400" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex-1 px-8 pb-8 space-y-5">
+        {/* Form — tighter padding on mobile */}
+        <form onSubmit={handleSubmit} className="flex-1 px-5 md:px-8 pb-6 md:pb-8 space-y-4 md:space-y-5" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
           {/* Type Toggle */}
           <div className="flex gap-2">
             {['expense', 'income', 'transfer'].map(t => (
@@ -60,9 +70,9 @@ export default function TransactionModal({ onClose, existing }) {
 
           {/* Amount */}
           <div>
-            <label className="block text-sm font-medium text-violet-200 mb-1.5">Amount</label>
+            <label className="block text-sm font-medium text-slate-300 mb-1.5">Amount</label>
             <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-violet-300 font-semibold text-lg">₹</span>
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-300 font-semibold text-lg">₹</span>
               <input type="number" min="0" step="0.01" required placeholder="0.00"
                 value={form.amount}
                 onChange={e => setForm(f => ({ ...f, amount: e.target.value }))}
@@ -72,7 +82,7 @@ export default function TransactionModal({ onClose, existing }) {
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-violet-200 mb-1.5">Description</label>
+            <label className="block text-sm font-medium text-slate-300 mb-1.5">Description</label>
             <input type="text" required placeholder="e.g., Grocery shopping"
               value={form.description}
               onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
@@ -81,7 +91,7 @@ export default function TransactionModal({ onClose, existing }) {
 
           {/* Category */}
           <div>
-            <label className="block text-sm font-medium text-violet-200 mb-1.5">Category</label>
+            <label className="block text-sm font-medium text-slate-300 mb-1.5">Category</label>
             <select required value={form.categoryId}
               onChange={e => setForm(f => ({ ...f, categoryId: e.target.value }))}
               className="input-field">
@@ -117,7 +127,7 @@ export default function TransactionModal({ onClose, existing }) {
 
           {/* Date */}
           <div>
-            <label className="block text-sm font-medium text-violet-200 mb-1.5">Date</label>
+            <label className="block text-sm font-medium text-slate-300 mb-1.5">Date</label>
             <input type="date" required value={form.date}
               onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
               className="input-field" />
@@ -125,7 +135,7 @@ export default function TransactionModal({ onClose, existing }) {
 
           {/* Account */}
           <div>
-            <label className="block text-sm font-medium text-violet-200 mb-1.5">
+            <label className="block text-sm font-medium text-slate-300 mb-1.5">
               {form.type === 'transfer' ? 'From Account' : 'Account'}
             </label>
             <select value={form.accountId}
@@ -141,7 +151,7 @@ export default function TransactionModal({ onClose, existing }) {
           {/* To Account — only for transfers */}
           {form.type === 'transfer' && (
             <div>
-              <label className="block text-sm font-medium text-violet-200 mb-1.5">To Account</label>
+              <label className="block text-sm font-medium text-slate-300 mb-1.5">To Account</label>
               <select value={form.toAccountId}
                 onChange={e => setForm(f => ({ ...f, toAccountId: e.target.value }))}
                 className="input-field">
@@ -156,8 +166,8 @@ export default function TransactionModal({ onClose, existing }) {
           {/* Credit Card (only for expenses) */}
           {form.type === 'expense' && state.creditCards?.length > 0 && (
             <div>
-              <label className="block text-sm font-medium text-violet-200 mb-1.5">
-                Charged to Credit Card <span style={{ color: 'rgba(196,181,253,0.4)', fontWeight: 400 }}>(optional)</span>
+              <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                Charged to Credit Card <span style={{ color: 'rgba(148,163,184,0.4)', fontWeight: 400 }}>(optional)</span>
               </label>
               <select value={form.creditCardId || ''}
                 onChange={e => setForm(f => ({ ...f, creditCardId: e.target.value }))}
@@ -172,7 +182,7 @@ export default function TransactionModal({ onClose, existing }) {
 
           {/* Notes */}
           <div>
-            <label className="block text-sm font-medium text-violet-200 mb-1.5">Notes (Optional)</label>
+            <label className="block text-sm font-medium text-slate-300 mb-1.5">Notes (Optional)</label>
             <textarea rows={3} placeholder="Add any notes..."
               value={form.notes}
               onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}

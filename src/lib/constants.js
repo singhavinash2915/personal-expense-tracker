@@ -101,10 +101,12 @@ export const SAMPLE_MUTUAL_FUNDS = [
 ]
 
 export const SAMPLE_STOCKS = [
-  { id: 'st1', symbol: 'RELIANCE', name: 'Reliance Industries', exchange: 'NSE', shares: 25,  avgCost: 2650, currentPrice: 2945.80 },
-  { id: 'st2', symbol: 'TCS',      name: 'Tata Consultancy',    exchange: 'NSE', shares: 15,  avgCost: 3450, currentPrice: 3842.50 },
-  { id: 'st3', symbol: 'INFY',     name: 'Infosys Ltd.',        exchange: 'NSE', shares: 30,  avgCost: 1420, currentPrice: 1582.30 },
-  { id: 'st4', symbol: 'HDFCBANK', name: 'HDFC Bank Ltd.',      exchange: 'NSE', shares: 20,  avgCost: 1540, currentPrice: 1685.40 },
-  { id: 'st5', symbol: 'TATAMOTORS',name: 'Tata Motors Ltd.',   exchange: 'NSE', shares: 50,  avgCost: 620,  currentPrice: 742.15  },
-  { id: 'st6', symbol: 'ITC',      name: 'ITC Limited',         exchange: 'NSE', shares: 100, avgCost: 385,  currentPrice: 438.65  },
+  { id: 'st1', symbol: 'GOLDBEES',    name: 'Nippon India ETF Gold BeES',  exchange: 'NSE', shares: 1385, avgCost: 108.24, currentPrice: 125.65 },
+  { id: 'st2', symbol: 'HDFCBANK',    name: 'HDFC Bank Ltd.',              exchange: 'NSE', shares: 50,   avgCost: 752.00, currentPrice: 795.45 },
+  { id: 'st3', symbol: 'HSCL',        name: 'Himadri Speciality Chemical', exchange: 'NSE', shares: 100,  avgCost: 432.50, currentPrice: 489.15 },
+  { id: 'st4', symbol: 'KPITTECH',    name: 'KPIT Technologies Ltd.',      exchange: 'NSE', shares: 100,  avgCost: 657.00, currentPrice: 746.30 },
+  { id: 'st5', symbol: 'NIFTYBEES',   name: 'Nippon India ETF Nifty BeES', exchange: 'NSE', shares: 273,  avgCost: 255.47, currentPrice: 274.04 },
+  { id: 'st6', symbol: 'PERSISTENT',  name: 'Persistent Systems Ltd.',     exchange: 'NSE', shares: 15,   avgCost: 4710.50,currentPrice: 5499.25 },
+  { id: 'st7', symbol: 'POLYCAB',     name: 'Polycab India Ltd.',          exchange: 'NSE', shares: 10,   avgCost: 6820.00,currentPrice: 7903.50 },
+  { id: 'st8', symbol: 'ULTRACEMCO',  name: 'UltraTech Cement Ltd.',       exchange: 'NSE', shares: 4,    avgCost: 10506.00,currentPrice: 11826.00 },
 ]

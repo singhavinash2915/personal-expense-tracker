@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Outlet, useLocation, NavLink } from 'react-router-dom'
-import { LayoutDashboard, Receipt, Landmark, BarChart2, Plus, ScanLine } from 'lucide-react'
+import { LayoutDashboard, Receipt, Wallet, MoreHorizontal, Plus, ScanLine } from 'lucide-react'
 import Sidebar from './Sidebar'
 import Header from './Header'
 import TransactionModal from '../ui/TransactionModal'
@@ -23,13 +23,19 @@ const pageMeta = {
   '/ai-insights':   { title: 'AI Insights',    subtitle: 'Smart analysis of your financial patterns.' },
   '/splits':         { title: 'Split Bills',    subtitle: 'Split expenses with friends and track settlements.' },
   '/goals':          { title: 'Savings Goals',  subtitle: 'Track progress towards your financial goals.' },
+  '/sms-import':     { title: 'SMS Auto-Import',subtitle: 'Automatically capture transactions from bank SMS.' },
+  '/digest':         { title: 'Monthly Wrap',   subtitle: 'Your shareable monthly financial digest.' },
+  '/connect-bank':   { title: 'Connect Bank',   subtitle: 'Securely link accounts via Account Aggregator.' },
+  '/snapshot':       { title: 'Daily Snapshot', subtitle: 'Shareable today-at-a-glance summary.' },
 }
 
-const BOTTOM_NAV = [
-  { to: '/',             icon: LayoutDashboard, label: 'Home'     },
-  { to: '/transactions', icon: Receipt,         label: 'Txns'     },
-  { to: '/accounts',     icon: Landmark,        label: 'Accounts' },
-  { to: '/analytics',    icon: BarChart2,       label: 'Analytics'},
+const BOTTOM_NAV_LEFT = [
+  { to: '/',             icon: LayoutDashboard, label: 'Home' },
+  { to: '/transactions', icon: Receipt,         label: 'Txns' },
+]
+
+const BOTTOM_NAV_RIGHT = [
+  { to: '/budgets',      icon: Wallet,          label: 'Budget' },
 ]
 
 export default function Layout() {
@@ -71,14 +77,15 @@ export default function Layout() {
       )}
 
       {/* Main content */}
-      <main className="flex-1 md:ml-64 flex flex-col min-h-screen pb-16 md:pb-0">
+      <main className="flex-1 md:ml-64 flex flex-col min-h-screen pb-20 md:pb-0 overflow-x-hidden">
         <Header
           title={meta.title}
           subtitle={subtitle}
           onMenuOpen={() => setDrawerOpen(true)}
           onAddTx={() => setShowAddTx(true)}
+          onScan={() => setShowScanner(true)}
         />
-        <div className="flex-1 p-4 md:p-8 page-enter">
+        <div className="flex-1 px-3 pt-3 pb-4 md:p-8 page-enter">
           <Outlet />
         </div>
       </main>
@@ -87,54 +94,74 @@ export default function Layout() {
       <nav
         className="fixed bottom-0 left-0 right-0 z-30 md:hidden"
         style={{
-          background: '#1a1a1a',
-          borderTop: '1px solid rgba(239,68,68,0.18)',
+          background: '#0c0f1a',
+          borderTop: '1px solid rgba(99,102,241,0.12)',
           paddingBottom: 'env(safe-area-inset-bottom)',
         }}
       >
-        <div className="flex items-center h-14 px-1">
-          {BOTTOM_NAV.map(({ to, icon: Icon, label }) => (
+        <div className="flex items-center h-16 px-1 pb-1 relative">
+          {/* Left nav items */}
+          {BOTTOM_NAV_LEFT.map(({ to, icon: Icon, label }) => (
             <NavLink
               key={to}
               to={to}
               end={to === '/'}
               className={({ isActive }) =>
-                `flex flex-col items-center justify-center gap-0.5 flex-1 py-1 rounded-xl transition-all ${
-                  isActive ? 'text-red-400' : 'text-white/40'
+                `flex flex-col items-center justify-center gap-1 flex-1 py-1 rounded-xl transition-all ${
+                  isActive ? 'text-indigo-400 font-bold' : 'text-white/40'
                 }`
               }
             >
-              <Icon className="w-5 h-5" />
-              <span className="text-[9px] font-semibold">{label}</span>
+              {({ isActive }) => (
+                <>
+                  <Icon className="w-6 h-6" />
+                  <span className={`text-[10px] font-semibold ${isActive ? 'font-bold' : ''}`}>{label}</span>
+                  {isActive && <span className="w-1 h-1 rounded-full bg-indigo-400 mt-0.5" />}
+                </>
+              )}
             </NavLink>
           ))}
 
-          {/* Scan button */}
-          <button
-            onClick={() => setShowScanner(true)}
-            className="flex flex-col items-center justify-center gap-0.5 flex-1 py-1"
-          >
-            <div
-              className="w-9 h-9 rounded-full flex items-center justify-center shadow-lg"
-              style={{ background: 'linear-gradient(135deg,#e53935,#f59e0b)' }}
+          {/* Center FAB — Add button */}
+          <div className="flex-1 flex items-center justify-center">
+            <button
+              onClick={() => setShowAddTx(true)}
+              className="w-14 h-14 rounded-full flex items-center justify-center shadow-xl -mt-8"
+              style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', boxShadow: '0 4px 20px rgba(99,102,241,0.5)' }}
             >
-              <ScanLine className="w-4 h-4 text-white" />
-            </div>
-            <span className="text-[9px] font-semibold text-white/40">Scan</span>
-          </button>
+              <Plus className="w-7 h-7 text-white" />
+            </button>
+          </div>
 
-          {/* Add button */}
-          <button
-            onClick={() => setShowAddTx(true)}
-            className="flex flex-col items-center justify-center gap-0.5 flex-1 py-1"
-          >
-            <div
-              className="w-9 h-9 rounded-full flex items-center justify-center shadow-lg"
-              style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)' }}
+          {/* Right nav items */}
+          {BOTTOM_NAV_RIGHT.map(({ to, icon: Icon, label }) => (
+            <NavLink
+              key={to}
+              to={to}
+              end={to === '/'}
+              className={({ isActive }) =>
+                `flex flex-col items-center justify-center gap-1 flex-1 py-1 rounded-xl transition-all ${
+                  isActive ? 'text-indigo-400 font-bold' : 'text-white/40'
+                }`
+              }
             >
-              <Plus className="w-4 h-4 text-red-400" />
-            </div>
-            <span className="text-[9px] font-semibold text-white/40">Add</span>
+              {({ isActive }) => (
+                <>
+                  <Icon className="w-6 h-6" />
+                  <span className={`text-[10px] font-semibold ${isActive ? 'font-bold' : ''}`}>{label}</span>
+                  {isActive && <span className="w-1 h-1 rounded-full bg-indigo-400 mt-0.5" />}
+                </>
+              )}
+            </NavLink>
+          ))}
+
+          {/* More — opens drawer */}
+          <button
+            onClick={() => setDrawerOpen(true)}
+            className="flex flex-col items-center justify-center gap-1 flex-1 py-1 rounded-xl transition-all text-white/40"
+          >
+            <MoreHorizontal className="w-6 h-6" />
+            <span className="text-[10px] font-semibold">More</span>
           </button>
         </div>
       </nav>

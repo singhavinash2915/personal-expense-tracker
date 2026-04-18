@@ -5,21 +5,21 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['"Plus Jakarta Sans"', 'Inter', 'sans-serif'],
+        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
       },
       colors: {
         surface: {
-          950: '#0b0818',
-          900: '#110e28',
-          800: '#1e1b3a',
-          850: '#181530',
+          950: '#0c0f1a',
+          900: '#141829',
+          800: '#1e2538',
+          850: '#191e30',
         },
       },
       boxShadow: {
-        'glow-violet': '0 0 20px rgba(124,58,237,0.35)',
+        'glow-indigo': '0 0 20px rgba(99,102,241,0.35)',
         'glow-cyan': '0 0 20px rgba(6,182,212,0.3)',
         'glow-green': '0 0 20px rgba(5,150,105,0.3)',
-        'card': '0 4px 24px rgba(0,0,0,0.25)',
+        'card': '0 4px 24px rgba(0,0,0,0.15)',
       },
       animation: {
         'fade-in': 'fadeIn 0.35s cubic-bezier(.16,1,.3,1)',

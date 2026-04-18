@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, Receipt, BarChart2, Wallet, CreditCard, RefreshCw, TrendingUp, Settings, Landmark, HeartPulse, Brain, Users, Target } from 'lucide-react'
+import { LayoutDashboard, Receipt, BarChart2, Wallet, CreditCard, RefreshCw, TrendingUp, Settings, Landmark, HeartPulse, Brain, Users, Target, MessageSquare, Sparkles, Link2, Camera } from 'lucide-react'
 import { useApp } from '../../context/AppContext'
 
 function PiggyBankIcon() {
@@ -41,6 +41,10 @@ const navItems = [
   { to: '/ai-insights',  icon: Brain,            label: 'AI Insights'  },
   { to: '/splits',       icon: Users,            label: 'Split Bills'  },
   { to: '/goals',        icon: Target,           label: 'Goals'        },
+  { to: '/sms-import',   icon: MessageSquare,    label: 'SMS Import'   },
+  { to: '/digest',       icon: Sparkles,         label: 'Monthly Wrap' },
+  { to: '/connect-bank', icon: Link2,            label: 'Connect Bank' },
+  { to: '/snapshot',     icon: Camera,           label: 'Snapshot'     },
 ]
 
 export default function Sidebar({ onClose }) {
@@ -48,10 +52,10 @@ export default function Sidebar({ onClose }) {
 
   return (
     <aside className="sidebar fixed left-0 top-0 h-full w-64 z-20 flex flex-col"
-      style={{ background: '#1a1a1a', borderRight: '1px solid rgba(239,68,68,0.18)' }}>
+      style={{ background: 'linear-gradient(180deg, #0f1225 0%, #161b33 100%)', borderRight: '1px solid rgba(99,102,241,0.1)' }}>
 
       {/* Logo */}
-      <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(239,68,68,0.18)' }}>
+      <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(99,102,241,0.1)' }}>
         <div className="flex items-center gap-3">
           <img
             src={`${import.meta.env.BASE_URL}pwa-192.png`}
@@ -59,8 +63,8 @@ export default function Sidebar({ onClose }) {
             className="w-10 h-10 rounded-xl object-cover flex-shrink-0"
           />
           <div className="flex-1 min-w-0">
-            <h1 className="text-lg font-extrabold leading-tight" style={{ color: '#f97316' }}>Expense<span className="text-white">Flow</span></h1>
-            <p className="text-xs" style={{ color: 'rgba(167,139,250,0.5)' }}>Personal Finance</p>
+            <h1 className="text-lg font-extrabold leading-tight" style={{ color: '#818cf8' }}>Expense<span className="text-white">Flow</span></h1>
+            <p className="text-xs" style={{ color: 'rgba(148,163,184,0.5)' }}>Personal Finance</p>
           </div>
           {/* Close button — only shown on mobile drawer */}
           {onClose && (
@@ -83,7 +87,7 @@ export default function Sidebar({ onClose }) {
           </NavLink>
         ))}
 
-        <div className="my-3" style={{ borderTop: '1px solid rgba(239,68,68,0.15)' }} />
+        <div className="my-3" style={{ borderTop: '1px solid rgba(99,102,241,0.1)' }} />
 
         <NavLink to="/settings"
           className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
@@ -93,13 +97,13 @@ export default function Sidebar({ onClose }) {
       </nav>
 
       {/* User */}
-      <div className="p-4" style={{ borderTop: '1px solid rgba(239,68,68,0.15)' }}>
+      <div className="p-4" style={{ borderTop: '1px solid rgba(99,102,241,0.1)' }}>
         <div className="flex items-center gap-3 px-2 py-2">
           <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
             style={{ background: 'linear-gradient(135deg,#7c3aed,#06b6d4)' }}>{state.userName?.[0]?.toUpperCase() || '?'}</div>
           <div className="min-w-0">
             <p className="text-sm font-semibold gradient-text truncate">{state.userName || 'My Account'}</p>
-            <p className="text-xs truncate" style={{ color: 'rgba(167,139,250,0.5)' }}>Personal Account</p>
+            <p className="text-xs truncate" style={{ color: 'rgba(148,163,184,0.5)' }}>Personal Account</p>
           </div>
           <button
             onClick={() => dispatch({ type: 'SET_THEME', payload: state.theme === 'dark' ? 'light' : 'dark' })}
