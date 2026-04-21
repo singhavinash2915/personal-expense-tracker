@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useLocation } from 'react-router-dom'
-import { Bell, Plus, Search, ScanLine } from 'lucide-react'
+import { Bell, Plus, Search, ScanLine, Mic, Menu } from 'lucide-react'
 import TransactionModal from '../ui/TransactionModal'
 import ReceiptScanner from '../ui/ReceiptScanner'
 import PrivacyToggle from '../ui/PrivacyToggle'
@@ -8,16 +8,25 @@ import NotificationPanel from '../ui/NotificationPanel'
 import { generateNotifications } from '../../lib/notifications'
 import { useApp } from '../../context/AppContext'
 
-export default function Header({ title, subtitle, onMenuOpen, onAddTx, onScan }) {
+function greetingForTime() {
+  const h = new Date().getHours()
+  if (h < 12) return 'Good morning'
+  if (h < 17) return 'Good afternoon'
+  if (h < 21) return 'Good evening'
+  return 'Hello'
+}
+
+export default function Header({ title, subtitle, onMenuOpen, onAddTx, onScan, onVoice }) {
   const [showModal, setShowModal] = useState(false)
   const [showScanner, setShowScanner] = useState(false)
-  const [search, setSearch] = useState('')
-  const [searchOpen, setSearchOpen] = useState(false)
   const [notifOpen, setNotifOpen] = useState(false)
 
   const { state } = useApp()
   const { pathname } = useLocation()
   const notifications = generateNotifications(state)
+
+  const isDashboard = pathname === '/'
+  const firstName = (state.userName || '').split(' ')[0] || ''
 
   function handleAdd() {
     if (onAddTx) onAddTx()
@@ -26,42 +35,61 @@ export default function Header({ title, subtitle, onMenuOpen, onAddTx, onScan })
 
   return (
     <>
-      <header className="glass sticky top-0 z-10 px-3 md:px-8 py-1.5 md:py-4 flex items-center justify-between gap-2">
-
-        {/* Left: avatar (mobile) + logo/title */}
-        <div className="flex items-center gap-2 md:gap-3 min-w-0">
-          {/* Mobile: avatar initial that opens drawer */}
+      <header
+        className="sticky top-0 z-10 px-3 md:px-8 py-2 md:py-3 flex items-center justify-between gap-2"
+        style={{
+          background: 'rgba(3,17,13,0.7)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          borderBottom: '1px solid var(--border-subtle)',
+        }}
+      >
+        {/* Left: hamburger (mobile) + title */}
+        <div className="flex items-center gap-3 min-w-0 flex-1">
           <button
             onClick={onMenuOpen}
-            className="md:hidden flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white active:scale-95 transition-transform"
-            style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}
+            className="md:hidden flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center active:scale-95 transition-transform"
+            style={{
+              background: 'var(--bg-elevated)',
+              border: '1px solid var(--border-default)',
+              color: 'var(--text-secondary)',
+            }}
+            aria-label="Open menu"
           >
-            {(state.userName || 'U').charAt(0).toUpperCase()}
+            <Menu className="w-4 h-4" />
           </button>
-          {/* Mobile: show app name only */}
-          <div className="md:hidden flex-shrink-0">
-            <span className="text-sm font-extrabold leading-none" style={{ color: '#818cf8' }}>Expense<span className="text-white">Flow</span></span>
-          </div>
-          {/* Desktop: show page title */}
+
+          {/* Desktop title */}
           <div className="min-w-0 hidden md:block">
-            <h2 className="text-xl font-semibold text-white truncate">{title}</h2>
-            <p className="text-xs truncate" style={{ color: 'rgba(196,181,253,0.6)' }}>{subtitle}</p>
+            <h2 className="heading" style={{ fontSize: 22 }}>{title}</h2>
+            {subtitle && <p className="body-secondary" style={{ marginTop: 2, fontSize: 12 }}>{subtitle}</p>}
+          </div>
+
+          {/* Mobile: compact brand */}
+          <div className="md:hidden flex-shrink-0">
+            <span className="font-display" style={{ fontSize: 16, fontWeight: 500, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+              Expense<em style={{ fontStyle: 'italic', color: 'var(--gold)', fontWeight: 400 }}>Flow</em>
+            </span>
           </div>
         </div>
 
         {/* Right actions */}
         <div className="flex items-center gap-2 flex-shrink-0">
-          {/* Search bar — desktop only */}
-          <div className="relative hidden md:block">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2"
-              style={{ color: 'rgba(167,139,250,0.45)' }} />
-            <input type="text" value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="Search..." className="input-field pl-9 pr-4 py-2 w-52 text-sm"
-              style={{ borderRadius: '0.65rem' }} />
-          </div>
-
-          {/* Scan icon — mobile */}
-          <button className="md:hidden btn-ghost p-2 rounded-xl" onClick={() => { if (onScan) onScan(); else setShowScanner(true); }}>
+          {/* Mobile: Voice + Scan */}
+          <button
+            className="md:hidden w-9 h-9 rounded-xl flex items-center justify-center"
+            onClick={onVoice}
+            aria-label="Voice add"
+            style={{ background: 'var(--gold-dim)', color: 'var(--gold)', border: '1px solid rgba(251,191,36,0.3)' }}
+          >
+            <Mic className="w-4 h-4" />
+          </button>
+          <button
+            className="md:hidden w-9 h-9 rounded-xl flex items-center justify-center"
+            onClick={() => { if (onScan) onScan(); else setShowScanner(true); }}
+            aria-label="Scan receipt"
+            style={{ background: 'var(--bg-elevated)', color: 'var(--text-secondary)', border: '1px solid var(--border-default)' }}
+          >
             <ScanLine className="w-4 h-4" />
           </button>
 
@@ -71,11 +99,15 @@ export default function Header({ title, subtitle, onMenuOpen, onAddTx, onScan })
           <div className="relative">
             <button
               onClick={() => setNotifOpen(n => !n)}
-              className="btn-ghost p-2 rounded-xl relative"
+              className="w-9 h-9 rounded-xl flex items-center justify-center relative"
+              style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', color: 'var(--text-secondary)' }}
             >
-              <Bell className="w-5 h-5 md:w-5 md:h-5" style={{ color: 'rgba(196,181,253,0.7)' }} />
+              <Bell className="w-4 h-4" />
               {notifications.length > 0 && (
-                <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-indigo-500 rounded-full text-[9px] flex items-center justify-center text-white font-bold">
+                <span
+                  className="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[9px] flex items-center justify-center"
+                  style={{ background: 'var(--gold)', color: 'var(--bg-base)', fontFamily: 'var(--font-mono)', fontWeight: 700 }}
+                >
                   {notifications.length > 9 ? '9+' : notifications.length}
                 </span>
               )}
@@ -87,27 +119,43 @@ export default function Header({ title, subtitle, onMenuOpen, onAddTx, onScan })
             />
           </div>
 
-          {/* Scan Receipt button — desktop only */}
-          <button onClick={() => setShowScanner(true)}
-            className="hidden md:flex btn-ghost items-center gap-2 px-3 py-2 text-sm font-semibold rounded-xl"
-            style={{ border: '1px solid rgba(99,102,241,0.25)', color: 'rgba(165,180,252,0.9)' }}>
-            <ScanLine className="w-4 h-4" />
-            Scan
+          {/* Desktop actions */}
+          <button onClick={onVoice} className="hidden md:flex btn btn-ghost" style={{ padding: '8px 14px' }}>
+            <Mic className="w-4 h-4" /> Quick Add
           </button>
-
-          {/* Add button — desktop only (mobile uses FAB in bottom nav) */}
-          <button onClick={handleAdd}
-            className="hidden md:flex btn-primary items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl">
-            <Plus className="w-4 h-4" />
-            Add Transaction
+          <button onClick={() => setShowScanner(true)} className="hidden md:flex btn btn-secondary" style={{ padding: '8px 14px' }}>
+            <ScanLine className="w-4 h-4" /> Scan
+          </button>
+          <button onClick={handleAdd} className="hidden md:flex btn btn-primary" style={{ padding: '8px 14px' }}>
+            <Plus className="w-4 h-4" /> Add
           </button>
         </div>
       </header>
 
-      {/* Mobile page title */}
-      <div className="md:hidden px-3 pt-1.5 pb-0.5">
-        <h2 className="text-base font-bold text-white">{title}</h2>
-        {subtitle && pathname === '/' && <p className="text-[11px] leading-tight" style={{ color: 'rgba(196,181,253,0.5)' }}>{subtitle}</p>}
+      {/* Mobile page title / greeting */}
+      <div className="md:hidden px-4 pt-3 pb-2">
+        {isDashboard ? (
+          <>
+            <div className="label-mono">— {greetingForTime()}</div>
+            <h1
+              className="font-display"
+              style={{
+                fontSize: 26,
+                fontWeight: 400,
+                letterSpacing: '-0.02em',
+                marginTop: 4,
+                color: 'var(--text-primary)',
+                lineHeight: 1.1,
+              }}
+            >
+              {firstName ? <>Hello, <em style={{ fontStyle: 'italic', color: 'var(--gold)', fontWeight: 400 }}>{firstName}.</em></> : <em style={{ fontStyle: 'italic', color: 'var(--gold)' }}>Welcome.</em>}
+            </h1>
+          </>
+        ) : (
+          <h2 className="font-display" style={{ fontSize: 20, fontWeight: 500, letterSpacing: '-0.01em', color: 'var(--text-primary)' }}>
+            {title}
+          </h2>
+        )}
       </div>
 
       {showModal && <TransactionModal onClose={() => setShowModal(false)} />}

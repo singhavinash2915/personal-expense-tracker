@@ -49,5 +49,13 @@
 	<true/>
 	<key>NSFaceIDUsageDescription</key>
 	<string>ExpenseFlow uses Face ID to securely unlock your financial data.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>ExpenseFlow uses the camera to scan receipts and automatically extract transaction details.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>ExpenseFlow needs access to your photo library so you can upload receipt images.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>ExpenseFlow may save exported reports and shareable snapshots to your photo library.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>ExpenseFlow uses the microphone to capture voice when you add transactions by speaking.</string>
 </dict>
 </plist>

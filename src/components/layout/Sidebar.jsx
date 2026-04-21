@@ -1,74 +1,60 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, Receipt, BarChart2, Wallet, CreditCard, RefreshCw, TrendingUp, Settings, Landmark, HeartPulse, Brain, Users, Target, MessageSquare, Sparkles, Link2, Camera } from 'lucide-react'
+import {
+  LayoutDashboard, Receipt, BarChart2, Wallet, CreditCard, RefreshCw,
+  TrendingUp, Settings as SettingsIcon, Landmark, HeartPulse, Brain, Target,
+  Sparkles, LineChart, Trophy, Building2
+} from 'lucide-react'
 import { useApp } from '../../context/AppContext'
-
-function PiggyBankIcon() {
-  return (
-    <svg width="26" height="26" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
-      {/* Body */}
-      <ellipse cx="13" cy="16" rx="9" ry="7.5" fill="white" fillOpacity="0.92"/>
-      {/* Ear */}
-      <ellipse cx="7" cy="10" rx="2.5" ry="2" fill="white" fillOpacity="0.85"/>
-      {/* Snout */}
-      <ellipse cx="21" cy="17" rx="2.8" ry="2.2" fill="white" fillOpacity="0.78"/>
-      {/* Nostrils */}
-      <circle cx="20.2" cy="17" r="0.5" fill="rgba(236,72,153,0.75)"/>
-      <circle cx="21.8" cy="17" r="0.5" fill="rgba(236,72,153,0.75)"/>
-      {/* Eye */}
-      <circle cx="16.5" cy="13" r="0.9" fill="rgba(30,27,75,0.65)"/>
-      {/* Coin slot */}
-      <rect x="10" y="8.5" width="5" height="1.2" rx="0.6" fill="rgba(124,58,237,0.55)"/>
-      {/* ₹ on coin slot */}
-      <text x="11.2" y="8" fontSize="5.5" fontWeight="bold" fill="white" fillOpacity="0.95" fontFamily="sans-serif">₹</text>
-      {/* Legs */}
-      <rect x="8.5"  cy="22" width="2.2" height="3" rx="1.1" fill="white" fillOpacity="0.82" y="22"/>
-      <rect x="12.5" cy="22" width="2.2" height="3" rx="1.1" fill="white" fillOpacity="0.82" y="22"/>
-      <rect x="16.5" cy="22" width="2.2" height="3" rx="1.1" fill="white" fillOpacity="0.82" y="22"/>
-    </svg>
-  )
-}
 
 const navItems = [
   { to: '/',              icon: LayoutDashboard, label: 'Dashboard'     },
   { to: '/transactions',  icon: Receipt,         label: 'Transactions'  },
   { to: '/accounts',      icon: Landmark,        label: 'Accounts'      },
-  { to: '/analytics',     icon: BarChart2,        label: 'Analytics'    },
-  { to: '/budgets',       icon: Wallet,           label: 'Budgets'      },
-  { to: '/credit',        icon: CreditCard,       label: 'Credit Cards' },
-  { to: '/subscriptions', icon: RefreshCw,        label: 'Subscriptions'},
-  { to: '/investments',   icon: TrendingUp,       label: 'Investments'  },
-  { to: '/health',        icon: HeartPulse,       label: 'Health Score' },
-  { to: '/ai-insights',  icon: Brain,            label: 'AI Insights'  },
-  { to: '/splits',       icon: Users,            label: 'Split Bills'  },
-  { to: '/goals',        icon: Target,           label: 'Goals'        },
-  { to: '/sms-import',   icon: MessageSquare,    label: 'SMS Import'   },
-  { to: '/digest',       icon: Sparkles,         label: 'Monthly Wrap' },
-  { to: '/connect-bank', icon: Link2,            label: 'Connect Bank' },
-  { to: '/snapshot',     icon: Camera,           label: 'Snapshot'     },
+  { to: '/analytics',     icon: BarChart2,       label: 'Analytics'     },
+  { to: '/budgets',       icon: Wallet,          label: 'Budgets'       },
+  { to: '/credit',        icon: CreditCard,      label: 'Credit Cards'  },
+  { to: '/subscriptions', icon: RefreshCw,       label: 'Subscriptions' },
+  { to: '/investments',   icon: TrendingUp,      label: 'Investments'   },
+  { to: '/health',        icon: HeartPulse,      label: 'Health Score'  },
+  { to: '/ai-insights',   icon: Brain,           label: 'AI Insights'   },
+  { to: '/goals',         icon: Target,          label: 'Goals'         },
+  { to: '/loans',         icon: Building2,       label: 'Loans & EMI'   },
+  { to: '/forecast',      icon: LineChart,       label: 'Forecast'      },
+  { to: '/achievements',  icon: Trophy,          label: 'Achievements'  },
+  { to: '/digest',        icon: Sparkles,        label: 'Monthly Wrap'  },
 ]
 
 export default function Sidebar({ onClose }) {
-  const { state, dispatch } = useApp()
+  const { state } = useApp()
 
   return (
-    <aside className="sidebar fixed left-0 top-0 h-full w-64 z-20 flex flex-col"
-      style={{ background: 'linear-gradient(180deg, #0f1225 0%, #161b33 100%)', borderRight: '1px solid rgba(99,102,241,0.1)' }}>
+    <aside
+      className="fixed left-0 top-0 h-full w-64 z-20 flex flex-col"
+      style={{
+        background: 'linear-gradient(180deg, #03110d 0%, #050a08 100%)',
+        borderRight: '1px solid var(--border-subtle)',
+      }}
+    >
+      {/* Decorative top-right emerald glow */}
+      <div className="absolute top-0 right-0 w-40 h-40 pointer-events-none"
+        style={{ background: 'radial-gradient(circle at top right, rgba(52,211,153,0.18), transparent 60%)' }} />
 
       {/* Logo */}
-      <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(99,102,241,0.1)' }}>
+      <div className="relative px-4 py-4" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
         <div className="flex items-center gap-3">
-          <img
-            src={`${import.meta.env.BASE_URL}pwa-192.png`}
-            alt="ExpenseFlow"
-            className="w-10 h-10 rounded-xl object-cover flex-shrink-0"
-          />
-          <div className="flex-1 min-w-0">
-            <h1 className="text-lg font-extrabold leading-tight" style={{ color: '#818cf8' }}>Expense<span className="text-white">Flow</span></h1>
-            <p className="text-xs" style={{ color: 'rgba(148,163,184,0.5)' }}>Personal Finance</p>
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+            style={{ background: 'var(--gradient-brand)', boxShadow: 'var(--glow-gold)' }}>
+            <span style={{ color: 'var(--bg-base)', fontWeight: 700, fontSize: 18, fontFamily: 'var(--font-display)' }}>₹</span>
           </div>
-          {/* Close button — only shown on mobile drawer */}
+          <div className="flex-1 min-w-0">
+            <h1 className="heading" style={{ fontSize: 18, lineHeight: 1.1 }}>
+              Expense<em style={{ fontStyle: 'italic', color: 'var(--gold)', fontWeight: 400 }}>Flow</em>
+            </h1>
+            <p className="label-mono" style={{ fontSize: 9, marginTop: 2 }}>Personal Finance</p>
+          </div>
           {onClose && (
-            <button onClick={onClose} className="btn-ghost p-1.5 rounded-lg flex-shrink-0">
+            <button onClick={onClose} className="p-1.5 rounded-lg flex-shrink-0"
+              style={{ color: 'var(--text-muted)' }}>
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
@@ -78,41 +64,81 @@ export default function Sidebar({ onClose }) {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+      <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
         {navItems.map(({ to, icon: Icon, label }) => (
-          <NavLink key={to} to={to} end={to === '/'}
-            className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+          <NavLink
+            key={to}
+            to={to}
+            end={to === '/'}
+            onClick={onClose}
+            className={({ isActive }) =>
+              `sidebar-link ${isActive ? 'active' : ''}`
+            }
+            style={({ isActive }) => ({
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              padding: '10px 12px',
+              borderRadius: 'var(--r-md)',
+              fontFamily: 'var(--font-body)',
+              fontSize: 13,
+              fontWeight: 600,
+              letterSpacing: '-0.01em',
+              color: isActive ? 'var(--gold)' : 'var(--text-muted)',
+              background: isActive ? 'var(--sidebar-nav-active)' : 'transparent',
+              borderLeft: isActive ? '2px solid var(--gold)' : '2px solid transparent',
+              textDecoration: 'none',
+              transition: 'all 0.2s ease',
+            })}
+          >
             <Icon className="w-4 h-4 flex-shrink-0" />
             {label}
           </NavLink>
         ))}
 
-        <div className="my-3" style={{ borderTop: '1px solid rgba(99,102,241,0.1)' }} />
+        <div className="my-3" style={{ borderTop: '1px solid var(--border-subtle)' }} />
 
-        <NavLink to="/settings"
-          className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-          <Settings className="w-4 h-4 flex-shrink-0" />
+        <NavLink
+          to="/settings"
+          onClick={onClose}
+          style={({ isActive }) => ({
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            padding: '10px 12px',
+            borderRadius: 'var(--r-md)',
+            fontFamily: 'var(--font-body)',
+            fontSize: 13,
+            fontWeight: 600,
+            color: isActive ? 'var(--gold)' : 'var(--text-muted)',
+            background: isActive ? 'var(--sidebar-nav-active)' : 'transparent',
+            borderLeft: isActive ? '2px solid var(--gold)' : '2px solid transparent',
+            textDecoration: 'none',
+          })}
+        >
+          <SettingsIcon className="w-4 h-4 flex-shrink-0" />
           Settings
         </NavLink>
       </nav>
 
       {/* User */}
-      <div className="p-4" style={{ borderTop: '1px solid rgba(99,102,241,0.1)' }}>
-        <div className="flex items-center gap-3 px-2 py-2">
-          <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
-            style={{ background: 'linear-gradient(135deg,#7c3aed,#06b6d4)' }}>{state.userName?.[0]?.toUpperCase() || '?'}</div>
-          <div className="min-w-0">
-            <p className="text-sm font-semibold gradient-text truncate">{state.userName || 'My Account'}</p>
-            <p className="text-xs truncate" style={{ color: 'rgba(148,163,184,0.5)' }}>Personal Account</p>
+      <div className="p-4" style={{ borderTop: '1px solid var(--border-subtle)' }}>
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm flex-shrink-0"
+            style={{
+              background: 'var(--gradient-brand)',
+              color: 'var(--bg-base)',
+              fontFamily: 'var(--font-display)',
+              fontWeight: 500,
+            }}>
+            {state.userName?.[0]?.toUpperCase() || '?'}
           </div>
-          <button
-            onClick={() => dispatch({ type: 'SET_THEME', payload: state.theme === 'dark' ? 'light' : 'dark' })}
-            className="ml-auto p-1.5 rounded-lg btn-ghost flex-shrink-0" title="Toggle theme">
-            {state.theme === 'dark'
-              ? <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
-              : <svg className="w-4 h-4 text-violet-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
-            }
-          </button>
+          <div className="min-w-0">
+            <p className="font-display" style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-primary)' }}>
+              {state.userName || 'My Account'}
+            </p>
+            <p className="label-mono" style={{ fontSize: 9, marginTop: 2 }}>Personal</p>
+          </div>
         </div>
       </div>
     </aside>

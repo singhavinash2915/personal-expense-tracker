@@ -337,22 +337,12 @@ export default function Settings() {
       {/* Appearance Tab */}
       {activeTab === 'appearance' && (
         <div className="space-y-4">
-          <div className="card p-6">
-            <h4 className="text-base font-semibold text-white mb-1">Theme</h4>
-            <p className="text-sm mb-5" style={{ color: 'rgba(196,181,253,0.5)' }}>Choose between dark and light mode</p>
-            <div className="flex gap-3">
-              {[
-                { id: 'dark',  label: 'Dark Mode',  icon: <Moon  className="w-5 h-5" /> },
-                { id: 'light', label: 'Light Mode', icon: <Sun   className="w-5 h-5" /> },
-              ].map(({ id, label, icon }) => (
-                <button key={id} onClick={() => dispatch({ type: 'SET_THEME', payload: id })}
-                  className={`flex items-center gap-3 px-5 py-3 rounded-xl text-sm font-semibold transition-all ${
-                    state.theme === id ? 'btn-primary' : 'btn-ghost'
-                  }`}>
-                  {icon} {label}
-                </button>
-              ))}
-            </div>
+          <div className="card p-5">
+            <div className="label-mono" style={{ fontSize: 10 }}>— Appearance</div>
+            <h4 className="heading" style={{ fontSize: 20, marginTop: 4 }}>Theme follows your device.</h4>
+            <p className="body-secondary" style={{ marginTop: 8 }}>
+              ExpenseFlow automatically switches between dark and light mode based on your system preference.
+            </p>
           </div>
 
           <div className="card p-6">
@@ -404,31 +394,6 @@ export default function Settings() {
             </div>
           </div>
 
-          <div className="card p-6">
-            <h4 className="text-base font-semibold text-white mb-1 flex items-center gap-2">
-              💬 SMS Auto-Import
-            </h4>
-            <p className="text-sm mb-4" style={{ color: 'rgba(196,181,253,0.6)' }}>
-              Automatically capture transactions from bank and UPI SMS messages.
-            </p>
-            <Link to="/sms-import" className="inline-block px-5 py-2 rounded-xl text-sm font-semibold text-white"
-              style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}>
-              Open SMS Import →
-            </Link>
-          </div>
-
-          <div className="card p-6">
-            <h4 className="text-base font-semibold text-white mb-1 flex items-center gap-2">
-              🔗 Connect Banks (AA)
-            </h4>
-            <p className="text-sm mb-4" style={{ color: 'rgba(196,181,253,0.6)' }}>
-              Sync accounts securely via RBI's Account Aggregator framework.
-            </p>
-            <Link to="/connect-bank" className="inline-block px-5 py-2 rounded-xl text-sm font-semibold text-white"
-              style={{ background: 'linear-gradient(135deg, #059669, #10b981)' }}>
-              Connect a Bank →
-            </Link>
-          </div>
         </div>
       )}
 

@@ -7,6 +7,7 @@ import {
   subDays,
 } from 'date-fns'
 import { formatINR } from './utils'
+import { generateAdvancedInsights } from './insightsPlus'
 
 /**
  * generateInsights(state) → array of insight objects (up to 6, sorted by priority)
@@ -240,8 +241,23 @@ export function generateInsights(state) {
     }
   }
 
+  // Merge with advanced detectors (anomaly, subscription creep, velocity, etc.)
+  const advanced = generateAdvancedInsights(state).map(ins => ({
+    id: ins.id,
+    type: ins.type,
+    title: ins.title,
+    message: ins.message,
+    icon: ins.icon,
+    color: ins.tone === 'emerald' ? 'text-emerald-400'
+         : ins.tone === 'rose' ? 'text-rose-400'
+         : ins.tone === 'amber' ? 'text-amber-400'
+         : ins.tone === 'violet' ? 'text-violet-400'
+         : 'text-indigo-400',
+    priority: 100 - (ins.priority || 0),  // invert: higher advanced priority -> lower legacy priority (shown first)
+  }))
+
   // Sort by priority ascending, then return top 6
-  return insights
+  return [...advanced, ...insights]
     .sort((a, b) => a.priority - b.priority)
     .slice(0, 6)
 }

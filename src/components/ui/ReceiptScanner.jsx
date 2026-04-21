@@ -1,23 +1,25 @@
 import { useState, useRef, useCallback } from 'react'
-import { Camera, Upload, X, Check, RefreshCw, Loader2, ScanLine } from 'lucide-react'
+import { Camera as CameraIcon, Upload, X, Check, RefreshCw, Loader2, ScanLine } from 'lucide-react'
+import { Capacitor } from '@capacitor/core'
 import { useApp } from '../../context/AppContext'
 import { parseReceipt } from '../../lib/receiptParser'
 import { generateId, formatINR } from '../../lib/utils'
 
 const STAGES = { idle: 'idle', scanning: 'scanning', review: 'review', done: 'done' }
+const isNative = Capacitor.isNativePlatform()
 
 export default function ReceiptScanner({ onClose }) {
   const { state, dispatch } = useApp()
-  const [stage, setStage]     = useState(STAGES.idle)
+  const [stage, setStage]       = useState(STAGES.idle)
   const [progress, setProgress] = useState(0)
-  const [preview, setPreview] = useState(null)   // base64 image
-  const [parsed, setParsed]   = useState(null)   // { amount, date, merchant, categoryId }
-  const [form, setForm]       = useState({
+  const [preview, setPreview]   = useState(null)
+  const [parsed, setParsed]     = useState(null)
+  const [form, setForm]         = useState({
     description: '', amount: '', date: '', type: 'expense', categoryId: 'c10', accountId: '', notes: '',
   })
-  const [error, setError]     = useState('')
-  const fileRef               = useRef()
-  const cameraRef             = useRef()
+  const [error, setError]       = useState('')
+  const fileRef                 = useRef()
+  const cameraRef               = useRef()
 
   // ── Run Tesseract OCR ────────────────────────────────────────────────────
   async function runOCR(imageData) {
@@ -47,12 +49,38 @@ export default function ReceiptScanner({ onClose }) {
       })
       setStage(STAGES.review)
     } catch (e) {
+      console.error('OCR error', e)
       setError('Could not read the image. Please try a clearer photo.')
       setStage(STAGES.idle)
     }
   }
 
-  // ── Handle file / camera input ───────────────────────────────────────────
+  // ── Native: use Capacitor Camera plugin (prevents crash, proper permissions) ──
+  async function pickNativeImage(source) {
+    try {
+      const { Camera, CameraResultType, CameraSource } = await import('@capacitor/camera')
+      const src = source === 'camera' ? CameraSource.Camera : CameraSource.Photos
+      const photo = await Camera.getPhoto({
+        quality: 80,
+        resultType: CameraResultType.DataUrl,
+        source: src,
+        allowEditing: false,
+        correctOrientation: true,
+        saveToGallery: false,
+      })
+      if (photo?.dataUrl) {
+        setPreview(photo.dataUrl)
+        runOCR(photo.dataUrl)
+      }
+    } catch (err) {
+      // User cancelled or permission denied
+      if (err?.message && !/cancel/i.test(err.message)) {
+        setError(err.message || 'Could not open camera. Check permissions in Settings.')
+      }
+    }
+  }
+
+  // ── Web fallback: HTML file input ────────────────────────────────────────
   const handleFile = useCallback(e => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -66,7 +94,18 @@ export default function ReceiptScanner({ onClose }) {
     e.target.value = ''
   }, [])
 
-  // ── Save transaction ─────────────────────────────────────────────────────
+  function openCamera() {
+    setError('')
+    if (isNative) pickNativeImage('camera')
+    else cameraRef.current?.click()
+  }
+
+  function openGallery() {
+    setError('')
+    if (isNative) pickNativeImage('photos')
+    else fileRef.current?.click()
+  }
+
   function handleSave() {
     if (!form.description || !form.amount || !form.date) {
       setError('Please fill in description, amount, and date.')
@@ -101,58 +140,72 @@ export default function ReceiptScanner({ onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center"
-      style={{ background: 'rgba(5,3,20,0.88)', backdropFilter: 'blur(6px)' }}>
-      <div className="w-full md:max-w-lg md:mx-4 rounded-t-3xl md:rounded-2xl flex flex-col overflow-hidden"
-        style={{ background: '#1a1a1a', border: '1px solid rgba(239,68,68,0.18)', maxHeight: '92vh' }}>
-
+      style={{ background: 'rgba(3,17,13,0.85)', backdropFilter: 'blur(10px)' }}>
+      <div
+        className="w-full md:max-w-lg md:mx-4 flex flex-col overflow-hidden animate-sheet-up md:animate-fadeIn"
+        style={{
+          background: 'var(--bg-surface)',
+          border: '1px solid var(--border-default)',
+          borderRadius: '28px 28px 0 0',
+          maxHeight: '92vh',
+        }}
+      >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 flex-shrink-0"
-          style={{ borderBottom: '1px solid rgba(239,68,68,0.12)' }}>
+        <div
+          className="flex items-center justify-between px-5 py-4 flex-shrink-0"
+          style={{ borderBottom: '1px solid var(--border-subtle)' }}
+        >
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center"
-              style={{ background: 'linear-gradient(135deg,#e53935,#f59e0b)' }}>
-              <ScanLine className="w-4 h-4 text-white" />
+            <div
+              className="w-9 h-9 rounded-xl flex items-center justify-center"
+              style={{ background: 'var(--gradient-fab)', boxShadow: 'var(--glow-gold)' }}
+            >
+              <ScanLine className="w-4 h-4" style={{ color: 'var(--bg-base)' }} />
             </div>
             <div>
-              <h3 className="font-semibold text-white text-sm">Scan Receipt</h3>
-              <p className="text-[11px]" style={{ color: 'rgba(196,181,253,0.5)' }}>
-                {stage === STAGES.idle     ? 'Take a photo or upload an image'     : ''}
-                {stage === STAGES.scanning ? 'Reading your receipt…'               : ''}
-                {stage === STAGES.review   ? 'Review & confirm the details'        : ''}
-                {stage === STAGES.done     ? 'Transaction added!'                  : ''}
+              <div className="label-mono" style={{ fontSize: 10 }}>— Receipt</div>
+              <h3 className="heading" style={{ fontSize: 18, marginTop: 2 }}>Scan it.</h3>
+              <p className="body-secondary" style={{ fontSize: 11, marginTop: 2 }}>
+                {stage === STAGES.idle     && 'Take a photo or upload an image'}
+                {stage === STAGES.scanning && 'Reading your receipt…'}
+                {stage === STAGES.review   && 'Review & confirm the details'}
+                {stage === STAGES.done     && 'Transaction added!'}
               </p>
             </div>
           </div>
-          <button onClick={onClose} className="btn-ghost p-2 rounded-xl">
+          <button onClick={onClose} className="p-2 rounded-xl"
+            style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', color: 'var(--text-muted)' }}>
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto">
-
-          {/* ── IDLE: capture options ── */}
+          {/* IDLE */}
           {stage === STAGES.idle && (
-            <div className="p-6 space-y-4">
+            <div className="p-5 space-y-3">
               {error && (
-                <div className="rounded-xl p-3 text-sm text-rose-300"
-                  style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)' }}>
+                <div className="rounded-xl p-3"
+                  style={{ background: 'var(--danger-dim)', border: '1px solid rgba(252,165,165,0.3)', color: 'var(--danger)', fontSize: 13 }}>
                   {error}
                 </div>
               )}
 
-              {/* Camera — opens rear camera on mobile */}
+              {/* Take Photo */}
               <button
-                onClick={() => cameraRef.current?.click()}
+                onClick={openCamera}
                 className="w-full flex items-center gap-4 p-5 rounded-2xl transition-all"
-                style={{ background: 'rgba(229,57,53,0.08)', border: '1px solid rgba(229,57,53,0.22)' }}>
+                style={{ background: 'var(--gold-dim)', border: '1px solid rgba(251,191,36,0.3)' }}
+              >
                 <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{ background: 'linear-gradient(135deg,#e53935,#f59e0b)' }}>
-                  <Camera className="w-6 h-6 text-white" />
+                  style={{ background: 'var(--gradient-fab)', boxShadow: 'var(--glow-gold)' }}>
+                  <CameraIcon className="w-6 h-6" style={{ color: 'var(--bg-base)' }} />
                 </div>
-                <div className="text-left">
-                  <p className="text-white font-semibold text-sm">Take Photo</p>
-                  <p className="text-xs mt-0.5" style={{ color: 'rgba(196,181,253,0.5)' }}>
+                <div className="text-left min-w-0">
+                  <p className="font-display" style={{ fontSize: 16, fontWeight: 500, color: 'var(--text-primary)' }}>
+                    Take a <em style={{ fontStyle: 'italic', color: 'var(--gold)', fontWeight: 400 }}>photo</em>
+                  </p>
+                  <p className="body-secondary" style={{ fontSize: 12, marginTop: 2 }}>
                     Open camera and snap the bill or receipt
                   </p>
                 </div>
@@ -160,212 +213,182 @@ export default function ReceiptScanner({ onClose }) {
               <input ref={cameraRef} type="file" accept="image/*" capture="environment"
                 onChange={handleFile} className="hidden" />
 
-              {/* Upload from gallery / files */}
+              {/* Upload Image */}
               <button
-                onClick={() => fileRef.current?.click()}
+                onClick={openGallery}
                 className="w-full flex items-center gap-4 p-5 rounded-2xl transition-all"
-                style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.18)' }}>
+                style={{ background: 'var(--emerald-dim)', border: '1px solid rgba(52,211,153,0.25)' }}
+              >
                 <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{ background: 'rgba(245,158,11,0.15)' }}>
-                  <Upload className="w-6 h-6 text-amber-400" />
+                  style={{ background: 'rgba(52,211,153,0.2)', border: '1px solid rgba(52,211,153,0.3)' }}>
+                  <Upload className="w-6 h-6" style={{ color: 'var(--emerald)' }} />
                 </div>
-                <div className="text-left">
-                  <p className="text-white font-semibold text-sm">Upload Image</p>
-                  <p className="text-xs mt-0.5" style={{ color: 'rgba(196,181,253,0.5)' }}>
-                    Choose from gallery or files (JPG, PNG, PDF)
+                <div className="text-left min-w-0">
+                  <p className="font-display" style={{ fontSize: 16, fontWeight: 500, color: 'var(--text-primary)' }}>
+                    Upload image
+                  </p>
+                  <p className="body-secondary" style={{ fontSize: 12, marginTop: 2 }}>
+                    Choose from gallery or files
                   </p>
                 </div>
               </button>
               <input ref={fileRef} type="file" accept="image/*,.pdf"
                 onChange={handleFile} className="hidden" />
 
-              <p className="text-center text-xs" style={{ color: 'rgba(196,181,253,0.35)' }}>
-                All processing happens on your device — nothing is uploaded.
+              <p className="label-mono text-center" style={{ fontSize: 9, marginTop: 8 }}>
+                — All processing on your device — nothing uploaded
               </p>
             </div>
           )}
 
-          {/* ── SCANNING: progress ── */}
+          {/* SCANNING */}
           {stage === STAGES.scanning && (
             <div className="p-8 flex flex-col items-center gap-5">
               {preview && (
                 <img src={preview} alt="Receipt"
                   className="w-full max-h-48 object-contain rounded-xl opacity-60"
-                  style={{ border: '1px solid rgba(239,68,68,0.18)' }} />
+                  style={{ border: '1px solid var(--border-accent)' }} />
               )}
               <div className="flex flex-col items-center gap-3 w-full">
-                <Loader2 className="w-8 h-8 animate-spin" style={{ color: '#e53935' }} />
-                <p className="text-white font-medium text-sm">Reading receipt…</p>
-                <div className="w-full rounded-full h-2" style={{ background: 'rgba(239,68,68,0.12)' }}>
-                  <div className="h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${progress}%`, background: 'linear-gradient(90deg,#e53935,#f59e0b)' }} />
+                <Loader2 className="w-8 h-8 animate-spin" style={{ color: 'var(--gold)' }} />
+                <p className="font-display" style={{ fontSize: 16, color: 'var(--text-primary)' }}>Reading receipt…</p>
+                <div className="progress-track w-full">
+                  <div className="progress-fill warn" style={{ width: `${progress}%` }} />
                 </div>
-                <p className="text-xs" style={{ color: 'rgba(196,181,253,0.5)' }}>{progress}%</p>
+                <p className="label-mono" style={{ fontSize: 10 }}>{progress}%</p>
               </div>
             </div>
           )}
 
-          {/* ── REVIEW: editable form ── */}
+          {/* REVIEW */}
           {stage === STAGES.review && (
             <div className="p-5 space-y-4">
-              {/* Receipt thumbnail */}
               {preview && (
                 <div className="relative">
                   <img src={preview} alt="Receipt"
                     className="w-full max-h-36 object-contain rounded-xl"
-                    style={{ border: '1px solid rgba(239,68,68,0.15)' }} />
-                  <button onClick={reset}
-                    className="absolute top-2 right-2 btn-ghost p-1.5 rounded-lg text-xs flex items-center gap-1">
+                    style={{ border: '1px solid var(--border-accent)' }} />
+                  <button onClick={reset} className="absolute top-2 right-2 btn btn-secondary"
+                    style={{ padding: '4px 10px', fontSize: 11 }}>
                     <RefreshCw className="w-3 h-3" /> Rescan
                   </button>
                 </div>
               )}
 
               {error && (
-                <div className="rounded-xl p-3 text-sm text-rose-300"
-                  style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)' }}>
+                <div className="rounded-xl p-3"
+                  style={{ background: 'var(--danger-dim)', border: '1px solid rgba(252,165,165,0.3)', color: 'var(--danger)', fontSize: 13 }}>
                   {error}
                 </div>
               )}
 
-              {/* Merchant / Description */}
-              <div>
-                <label className="block text-xs font-medium mb-1.5" style={{ color: 'rgba(196,181,253,0.7)' }}>
-                  Merchant / Description *
-                </label>
-                <input className="input-field w-full px-4 py-2.5 text-sm"
-                  value={form.description}
+              <Field label="Merchant / Description *">
+                <input className="input" value={form.description}
                   onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                  placeholder="e.g. Big Basket, Electricity Bill" />
-              </div>
+                  placeholder="e.g. Big Basket" />
+              </Field>
 
-              {/* Amount + Type row */}
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium mb-1.5" style={{ color: 'rgba(196,181,253,0.7)' }}>
-                    Amount (₹) *
-                  </label>
-                  <input className="input-field w-full px-4 py-2.5 text-sm" type="number"
+                <Field label="Amount (₹) *">
+                  <input className="input" type="number"
                     value={form.amount}
                     onChange={e => setForm(f => ({ ...f, amount: e.target.value }))}
-                    placeholder="0.00" />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium mb-1.5" style={{ color: 'rgba(196,181,253,0.7)' }}>
-                    Type
-                  </label>
-                  <div className="flex gap-2 h-[42px]">
+                    placeholder="0" />
+                </Field>
+                <Field label="Type">
+                  <div className="flex gap-2">
                     {['expense','income'].map(t => (
                       <button key={t} type="button"
-                        onClick={() => setForm(f => ({ ...f, type: t,
-                          categoryId: t === 'expense' ? 'c10' : 'i4' }))}
-                        className={`flex-1 rounded-xl text-xs font-semibold capitalize transition-all ${
-                          form.type === t ? 'btn-primary' : 'btn-ghost'}`}>
+                        onClick={() => setForm(f => ({ ...f, type: t, categoryId: t === 'expense' ? 'c10' : 'i4' }))}
+                        className={`chip ${form.type === t ? 'active' : ''} flex-1`}
+                        style={{ justifyContent: 'center' }}>
                         {t}
                       </button>
                     ))}
                   </div>
-                </div>
+                </Field>
               </div>
 
-              {/* Date */}
-              <div>
-                <label className="block text-xs font-medium mb-1.5" style={{ color: 'rgba(196,181,253,0.7)' }}>
-                  Date *
-                </label>
-                <input className="input-field w-full px-4 py-2.5 text-sm" type="date"
+              <Field label="Date *">
+                <input className="input" type="date"
                   value={form.date}
                   onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
-              </div>
+              </Field>
 
-              {/* Category */}
-              <div>
-                <label className="block text-xs font-medium mb-1.5" style={{ color: 'rgba(196,181,253,0.7)' }}>
-                  Category
-                </label>
-                <select className="input-field w-full px-4 py-2.5 text-sm"
-                  value={form.categoryId}
+              <Field label="Category">
+                <select className="input select" value={form.categoryId}
                   onChange={e => setForm(f => ({ ...f, categoryId: e.target.value }))}>
                   <optgroup label="Expense">
-                    {expenseCats.map(c => (
-                      <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
-                    ))}
+                    {expenseCats.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
                   </optgroup>
                   <optgroup label="Income">
-                    {incomeCats.map(c => (
-                      <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
-                    ))}
+                    {incomeCats.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
                   </optgroup>
                 </select>
-              </div>
+              </Field>
 
-              {/* Account */}
               {state.accounts.length > 0 && (
-                <div>
-                  <label className="block text-xs font-medium mb-1.5" style={{ color: 'rgba(196,181,253,0.7)' }}>
-                    Account
-                  </label>
-                  <select className="input-field w-full px-4 py-2.5 text-sm"
-                    value={form.accountId}
+                <Field label="Account">
+                  <select className="input select" value={form.accountId}
                     onChange={e => setForm(f => ({ ...f, accountId: e.target.value }))}>
                     <option value="">— None —</option>
-                    {state.accounts.map(a => (
-                      <option key={a.id} value={a.id}>{a.name}</option>
-                    ))}
+                    {state.accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
                   </select>
-                </div>
+                </Field>
               )}
 
-              {/* Notes */}
-              <div>
-                <label className="block text-xs font-medium mb-1.5" style={{ color: 'rgba(196,181,253,0.7)' }}>
-                  Notes (optional)
-                </label>
-                <input className="input-field w-full px-4 py-2.5 text-sm"
-                  value={form.notes}
+              <Field label="Notes (optional)">
+                <input className="input" value={form.notes}
                   onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
                   placeholder="Any additional notes" />
-              </div>
+              </Field>
             </div>
           )}
 
-          {/* ── DONE ── */}
+          {/* DONE */}
           {stage === STAGES.done && (
             <div className="p-8 flex flex-col items-center gap-4 text-center">
               <div className="w-16 h-16 rounded-full flex items-center justify-center"
-                style={{ background: 'linear-gradient(135deg,#e53935,#f59e0b)' }}>
-                <Check className="w-8 h-8 text-white" />
+                style={{ background: 'var(--gradient-fab)', boxShadow: 'var(--glow-gold)' }}>
+                <Check className="w-8 h-8" style={{ color: 'var(--bg-base)' }} />
               </div>
-              <p className="text-white font-semibold text-lg">Transaction Added!</p>
-              <p className="text-sm" style={{ color: 'rgba(196,181,253,0.6)' }}>
+              <div>
+                <div className="label-mono" style={{ fontSize: 10 }}>— Added</div>
+                <h3 className="heading" style={{ fontSize: 20, marginTop: 4 }}>
+                  <em style={{ fontStyle: 'italic', color: 'var(--gold)', fontWeight: 400 }}>Transaction saved.</em>
+                </h3>
+              </div>
+              <p className="body-secondary" style={{ fontSize: 13 }}>
                 {form.description} · {formatINR(parseFloat(form.amount) || 0)}
               </p>
               <div className="flex gap-3 mt-2">
-                <button onClick={reset} className="btn-ghost px-5 py-2.5 rounded-xl text-sm font-semibold">
-                  Scan Another
-                </button>
-                <button onClick={onClose} className="btn-primary px-5 py-2.5 rounded-xl text-sm font-semibold">
-                  Done
-                </button>
+                <button onClick={reset} className="btn btn-secondary">Scan Another</button>
+                <button onClick={onClose} className="btn btn-primary">Done</button>
               </div>
             </div>
           )}
         </div>
 
-        {/* Footer actions */}
+        {/* Footer actions (review stage) */}
         {stage === STAGES.review && (
           <div className="px-5 py-4 flex gap-3 flex-shrink-0"
-            style={{ borderTop: '1px solid rgba(239,68,68,0.12)' }}>
-            <button onClick={reset} className="btn-ghost flex-1 py-3 rounded-xl text-sm font-semibold">
-              Rescan
-            </button>
-            <button onClick={handleSave}
-              className="btn-primary flex-1 py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2">
+            style={{ borderTop: '1px solid var(--border-subtle)', paddingBottom: 'calc(env(safe-area-inset-bottom) + 1rem)' }}>
+            <button onClick={reset} className="btn btn-secondary flex-1">Rescan</button>
+            <button onClick={handleSave} className="btn btn-primary flex-1">
               <Check className="w-4 h-4" /> Add Transaction
             </button>
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+function Field({ label, children }) {
+  return (
+    <div>
+      <label className="label-mono" style={{ fontSize: 10, display: 'block', marginBottom: 8 }}>— {label}</label>
+      {children}
     </div>
   )
 }
