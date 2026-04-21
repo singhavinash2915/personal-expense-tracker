@@ -6,20 +6,23 @@ export function cn(...inputs) {
 }
 
 export function formatINR(amount) {
-  return new Intl.NumberFormat('en-IN', {
+  const s = new Intl.NumberFormat('en-IN', {
     style: 'currency',
     currency: 'INR',
     maximumFractionDigits: 0,
   }).format(amount)
+  // Replace ASCII hyphen with U+2212 MINUS SIGN for proper typography
+  return s.replace(/^-/, '\u2212')
 }
 
 export function formatINRDecimal(amount) {
-  return new Intl.NumberFormat('en-IN', {
+  const s = new Intl.NumberFormat('en-IN', {
     style: 'currency',
     currency: 'INR',
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(amount)
+  return s.replace(/^-/, '\u2212')
 }
 
 export function formatDate(dateStr) {

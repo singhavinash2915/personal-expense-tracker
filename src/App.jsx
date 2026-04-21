@@ -17,13 +17,12 @@ import Settings from './pages/Settings'
 import PrivacyPolicy from './pages/PrivacyPolicy'
 import HealthScore from './pages/HealthScore'
 import AIInsights from './pages/AIInsights'
-import Splits from './pages/Splits'
 import Goals from './pages/Goals'
 import Onboarding from './pages/Onboarding'
-import SMSImport from './pages/SMSImport'
 import MonthlyDigest from './pages/MonthlyDigest'
-import ConnectBank from './pages/ConnectBank'
-import DailySnapshot from './pages/DailySnapshot'
+import Forecast from './pages/Forecast'
+import Achievements from './pages/Achievements'
+import Loans from './pages/Loans'
 
 function AppRoutes() {
   const { state } = useApp()
@@ -59,12 +58,11 @@ function AppRoutes() {
           <Route path="privacy" element={<PrivacyPolicy />} />
           <Route path="health" element={<HealthScore />} />
           <Route path="ai-insights" element={<AIInsights />} />
-          <Route path="splits" element={<Splits />} />
           <Route path="goals" element={<Goals />} />
-          <Route path="sms-import" element={<SMSImport />} />
           <Route path="digest" element={<MonthlyDigest />} />
-          <Route path="connect-bank" element={<ConnectBank />} />
-          <Route path="snapshot" element={<DailySnapshot />} />
+          <Route path="forecast" element={<Forecast />} />
+          <Route path="achievements" element={<Achievements />} />
+          <Route path="loans" element={<Loans />} />
         </Route>
       </Routes>
       <PWAInstallBanner />

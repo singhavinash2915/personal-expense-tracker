@@ -5,34 +5,58 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        sans: ['DM Sans', 'system-ui', '-apple-system', 'sans-serif'],
+        display: ['Fraunces', 'Georgia', 'serif'],
+        mono: ['JetBrains Mono', 'SF Mono', 'monospace'],
       },
       colors: {
-        surface: {
-          950: '#0c0f1a',
-          900: '#141829',
-          800: '#1e2538',
-          850: '#191e30',
+        // New emerald/gold palette
+        emerald: {
+          DEFAULT: '#34d399',
+          50:  '#ecfdf5',
+          100: '#d1fae5',
+          400: '#34d399',
+          500: '#10b981',
+          600: '#059669',
+          700: '#047857',
+        },
+        gold: {
+          DEFAULT: '#fbbf24',
+          300: '#fcd34d',
+          400: '#fbbf24',
+          500: '#f59e0b',
+          600: '#d97706',
+        },
+        danger: {
+          DEFAULT: '#fca5a5',
+        },
+        base: {
+          DEFAULT: '#03110d',
+          surface: '#050a08',
         },
       },
       boxShadow: {
-        'glow-indigo': '0 0 20px rgba(99,102,241,0.35)',
-        'glow-cyan': '0 0 20px rgba(6,182,212,0.3)',
-        'glow-green': '0 0 20px rgba(5,150,105,0.3)',
-        'card': '0 4px 24px rgba(0,0,0,0.15)',
+        'glow-emerald': '0 8px 32px -12px rgba(52,211,153,0.35)',
+        'glow-gold':    '0 12px 30px -8px rgba(251,191,36,0.5)',
+        'card':          '0 4px 24px rgba(0,0,0,0.15)',
       },
       animation: {
-        'fade-in': 'fadeIn 0.35s cubic-bezier(.16,1,.3,1)',
-        'slide-in': 'slideIn 0.35s cubic-bezier(.16,1,.3,1)',
+        'fade-in':   'fadeIn 0.35s cubic-bezier(.16,1,.3,1)',
+        'slide-in':  'slideIn 0.35s cubic-bezier(.16,1,.3,1)',
+        'sheet-up':  'sheetUp 0.25s ease forwards',
       },
       keyframes: {
         fadeIn: {
           from: { opacity: 0, transform: 'translateY(10px)' },
-          to: { opacity: 1, transform: 'translateY(0)' },
+          to:   { opacity: 1, transform: 'translateY(0)' },
         },
         slideIn: {
           from: { opacity: 0, transform: 'translateX(20px)' },
-          to: { opacity: 1, transform: 'translateX(0)' },
+          to:   { opacity: 1, transform: 'translateX(0)' },
+        },
+        sheetUp: {
+          from: { transform: 'translateY(100%)' },
+          to:   { transform: 'translateY(0)' },
         },
       },
     },

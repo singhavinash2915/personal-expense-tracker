@@ -31,6 +31,7 @@ const initialState = {
   userName:      loadFromStorage('ef_user_name',     ''),
   onboarded:     loadFromStorage('ef_onboarded',     false),
   biometricLock: loadFromStorage('ef_biometric_lock', false),
+  loans:         loadFromStorage('ef_loans',          []),
 }
 
 function reducer(state, action) {
@@ -181,6 +182,12 @@ function reducer(state, action) {
       return { ...state, privacyMode: !state.privacyMode }
     case 'SET_BIOMETRIC_LOCK':
       return { ...state, biometricLock: action.payload }
+    case 'ADD_LOAN':
+      return { ...state, loans: [action.payload, ...(state.loans || [])] }
+    case 'UPDATE_LOAN':
+      return { ...state, loans: (state.loans || []).map(l => l.id === action.payload.id ? action.payload : l) }
+    case 'DELETE_LOAN':
+      return { ...state, loans: (state.loans || []).filter(l => l.id !== action.payload) }
     case 'CLEAR_ALL_DATA':
       return {
         ...state,
@@ -228,6 +235,18 @@ function reducer(state, action) {
 export function AppProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, initialState)
 
+  // Refresh widget snapshot when data changes
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const { writeWidgetSnapshot } = await import('../lib/widgetSync')
+        if (!cancelled) await writeWidgetSnapshot(state)
+      } catch {}
+    })()
+    return () => { cancelled = true }
+  }, [state.transactions, state.accounts, state.mutualFunds, state.stocks, state.creditCards])
+
   // Persist to localStorage
   useEffect(() => { localStorage.setItem('ef_transactions',  JSON.stringify(state.transactions)) },  [state.transactions])
   useEffect(() => { localStorage.setItem('ef_budgets',       JSON.stringify(state.budgets)) },       [state.budgets])
@@ -246,6 +265,7 @@ export function AppProvider({ children }) {
   useEffect(() => { localStorage.setItem('ef_user_name', JSON.stringify(state.userName)) }, [state.userName])
   useEffect(() => { localStorage.setItem('ef_onboarded', JSON.stringify(state.onboarded)) }, [state.onboarded])
   useEffect(() => { localStorage.setItem('ef_biometric_lock', JSON.stringify(state.biometricLock)) }, [state.biometricLock])
+  useEffect(() => { localStorage.setItem('ef_loans', JSON.stringify(state.loans || [])) }, [state.loans])
 
   // Derived helpers
   const getCategory = (id) => state.categories.find(c => c.id === id)

@@ -4,4 +4,6 @@
     <string name="title_activity_main">ExpenseFlow</string>
     <string name="package_name">com.avinash.expenseflow</string>
     <string name="custom_url_scheme">com.avinash.expenseflow</string>
+    <string name="widget_description">ExpenseFlow balance \u0026 today\'s spending at a glance</string>
+    <string name="widget_label">ExpenseFlow</string>
 </resources>

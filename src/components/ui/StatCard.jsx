@@ -1,25 +1,58 @@
 export default function StatCard({ gradient, icon, label, value, trend, trendUp, badge }) {
+  // `gradient` (legacy) is ignored — we now use consistent glass treatment.
+  // Pass `tone` prop for semantic tint: 'default' | 'income' | 'expense' | 'gold'
   return (
-    <div className={`hover-lift rounded-2xl p-3 md:p-6 ${gradient} shadow-lg`}>
-      <div className="flex items-center justify-between mb-2 md:mb-4">
-        <div className="w-9 h-9 md:w-12 md:h-12 rounded-lg md:rounded-xl bg-white/20 flex items-center justify-center text-lg md:text-2xl">
+    <div
+      className="p-3 md:p-5"
+      style={{
+        background: 'var(--bg-elevated)',
+        backdropFilter: 'blur(20px)',
+        border: '1px solid var(--border-default)',
+        borderRadius: 'var(--r-xl)',
+      }}
+    >
+      <div className="flex items-center justify-between mb-2 md:mb-3">
+        <div
+          className="w-9 h-9 md:w-10 md:h-10 flex items-center justify-center text-lg md:text-xl"
+          style={{
+            borderRadius: 'var(--r-md)',
+            background: 'rgba(255,255,255,0.05)',
+            border: '1px solid var(--border-subtle)',
+          }}
+        >
           {icon}
         </div>
         {badge && (
-          <span className="text-[9px] md:text-xs font-medium text-white/70 bg-white/15 px-2 py-0.5 md:px-2.5 md:py-1 rounded-full">{badge}</span>
+          <span className="label-mono" style={{ fontSize: 9 }}>
+            {badge}
+          </span>
         )}
       </div>
-      <p className="text-xs md:text-sm text-white/70 font-medium">{label}</p>
-      <p className="text-xl md:text-3xl font-bold text-white mt-0.5 md:mt-1 truncate">{value}</p>
+
+      <p className="label-mono" style={{ fontSize: 10 }}>— {label}</p>
+      <p
+        className="font-display mt-1 truncate"
+        style={{
+          fontSize: 22,
+          fontWeight: 400,
+          letterSpacing: '-0.02em',
+          color: 'var(--text-primary)',
+        }}
+      >
+        {value}
+      </p>
+
       {trend && (
-        <p className={`text-[10px] md:text-sm mt-1 md:mt-2 flex items-center gap-1 ${trendUp ? 'text-white/80' : 'text-white/60'}`}>
-          <svg className="w-3 h-3 md:w-3.5 md:h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            {trendUp
-              ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
-              : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"/>
-            }
-          </svg>
-          {trend}
+        <p
+          className="mt-2 flex items-center gap-1"
+          style={{
+            fontSize: 11,
+            fontFamily: 'var(--font-body)',
+            color: trendUp ? 'var(--emerald)' : 'var(--danger)',
+            fontWeight: 500,
+          }}
+        >
+          {trendUp ? '↑' : '↓'} {trend}
         </p>
       )}
     </div>

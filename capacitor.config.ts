@@ -19,6 +19,10 @@ const config: CapacitorConfig = {
       splashFullScreen: true,
       splashImmersive: true,
     },
+    Preferences: {
+      // Share widget data with iOS Widget Extension via App Group
+      group: 'group.com.avinash.expenseflow',
+    },
   },
   android: {
     allowMixedContent: false,
