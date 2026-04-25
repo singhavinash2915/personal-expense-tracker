@@ -6,6 +6,7 @@ import { fetchNAV, searchSchemes, isValidSchemeCode, sanitiseSchemeCode } from '
 import { calcCAGR } from '../lib/investmentAI'
 import StockChart from '../components/ui/StockChart'
 import MFChart from '../components/ui/MFChart'
+import InvestModal from '../components/ui/InvestModal'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 
 const EMPTY_MF = { name: '', category: '', units: '', avgNav: '', currentNav: '', schemeCode: '' }
@@ -48,6 +49,7 @@ export default function Investments() {
   const [refreshError, setRefreshError] = useState('')
   const [lastRefreshed, setLastRefreshed] = useState(null)
   const [confirmDelete, setConfirmDelete] = useState(null)
+  const [investModal, setInvestModal] = useState(null)  // { asset, action }
   const [autoRefresh, setAutoRefresh] = useState(true)
   const [countdown, setCountdown] = useState(60)
   const autoRefreshRef = useRef(null)
@@ -529,8 +531,18 @@ export default function Investments() {
                               <Search className="w-3.5 h-3.5" />
                             </button>
                           )}
-                          <button onClick={() => openEditMF(mf)} className="btn-ghost p-1.5 rounded-lg text-violet-300"><Edit2 className="w-3.5 h-3.5" /></button>
-                          <button onClick={() => setConfirmDelete({ id: mf.id, type: 'mf' })} className="btn-ghost p-1.5 rounded-lg text-rose-400"><Trash2 className="w-3.5 h-3.5" /></button>
+                          <button onClick={() => setInvestModal({ asset: { ...mf, kind: 'mf' }, action: 'buy' })}
+                            title="Invest more"
+                            className="btn-ghost p-1.5 rounded-lg" style={{ color: 'var(--emerald)' }}>
+                            <span style={{ fontFamily: 'var(--font-display)', fontWeight: 500, fontSize: 16 }}>+</span>
+                          </button>
+                          <button onClick={() => setInvestModal({ asset: { ...mf, kind: 'mf' }, action: 'sell' })}
+                            title="Redeem"
+                            className="btn-ghost p-1.5 rounded-lg" style={{ color: 'var(--gold)' }}>
+                            <span style={{ fontFamily: 'var(--font-display)', fontWeight: 500, fontSize: 16 }}>−</span>
+                          </button>
+                          <button onClick={() => openEditMF(mf)} className="btn-ghost p-1.5 rounded-lg" style={{ color: 'var(--text-muted)' }}><Edit2 className="w-3.5 h-3.5" /></button>
+                          <button onClick={() => setConfirmDelete({ id: mf.id, type: 'mf' })} className="btn-ghost p-1.5 rounded-lg" style={{ color: 'var(--danger)' }}><Trash2 className="w-3.5 h-3.5" /></button>
                         </div>
                       </td>
                     </tr>
@@ -599,8 +611,18 @@ export default function Investments() {
                           >
                             <BarChart2 className="w-3.5 h-3.5" />
                           </button>
-                          <button onClick={() => openEditST(st)} className="btn-ghost p-1.5 rounded-lg text-violet-300"><Edit2 className="w-3.5 h-3.5" /></button>
-                          <button onClick={() => setConfirmDelete({ id: st.id, type: 'stock' })} className="btn-ghost p-1.5 rounded-lg text-rose-400"><Trash2 className="w-3.5 h-3.5" /></button>
+                          <button onClick={() => setInvestModal({ asset: { ...st, kind: 'stock' }, action: 'buy' })}
+                            title="Buy more"
+                            className="btn-ghost p-1.5 rounded-lg" style={{ color: 'var(--emerald)' }}>
+                            <span style={{ fontFamily: 'var(--font-display)', fontWeight: 500, fontSize: 16 }}>+</span>
+                          </button>
+                          <button onClick={() => setInvestModal({ asset: { ...st, kind: 'stock' }, action: 'sell' })}
+                            title="Sell"
+                            className="btn-ghost p-1.5 rounded-lg" style={{ color: 'var(--gold)' }}>
+                            <span style={{ fontFamily: 'var(--font-display)', fontWeight: 500, fontSize: 16 }}>−</span>
+                          </button>
+                          <button onClick={() => openEditST(st)} className="btn-ghost p-1.5 rounded-lg" style={{ color: 'var(--text-muted)' }}><Edit2 className="w-3.5 h-3.5" /></button>
+                          <button onClick={() => setConfirmDelete({ id: st.id, type: 'stock' })} className="btn-ghost p-1.5 rounded-lg" style={{ color: 'var(--danger)' }}><Trash2 className="w-3.5 h-3.5" /></button>
                         </div>
                       </td>
                     </tr>
@@ -955,6 +977,14 @@ export default function Investments() {
             </div>
           </div>
         </div>
+      )}
+
+      {investModal && (
+        <InvestModal
+          asset={investModal.asset}
+          action={investModal.action}
+          onClose={() => setInvestModal(null)}
+        />
       )}
     </div>
   )

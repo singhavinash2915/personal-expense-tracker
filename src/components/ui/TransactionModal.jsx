@@ -7,7 +7,9 @@ const today = new Date().toISOString().split('T')[0]
 export default function TransactionModal({ onClose, existing }) {
   const { state, dispatch } = useApp()
   const [form, setForm] = useState(existing || {
-    type: 'expense', amount: '', description: '', categoryId: '', accountId: '', toAccountId: '', date: today, notes: '', creditCardId: ''
+    type: 'expense', amount: '', description: '', categoryId: '',
+    accountId: state.accounts[0]?.id || '',
+    toAccountId: '', date: today, notes: '', creditCardId: ''
   })
 
   const expenseCategories  = state.categories.filter(c => c.type === 'expense')

@@ -20,6 +20,7 @@ const EMPTY_LOAN = {
   tenureMonths: 120,
   startDate: new Date().toISOString().slice(0, 10),
   lender: '',
+  preExistingPaid: 0,  // EMIs already paid before tracking in app
 }
 
 export default function Loans() {
@@ -217,7 +218,16 @@ export default function Loans() {
                 <Input label="Annual Rate %" type="number" step="0.01" value={form.annualRate} onChange={v => setForm({ ...form, annualRate: +v })} />
                 <Input label="Tenure (months)" type="number" value={form.tenureMonths} onChange={v => setForm({ ...form, tenureMonths: +v })} />
               </div>
-              <Input label="Start Date" type="date" value={form.startDate} onChange={v => setForm({ ...form, startDate: v })} />
+              <Input label="Start Date (original)" type="date" value={form.startDate} onChange={v => setForm({ ...form, startDate: v })} />
+              <Input
+                label={`EMIs already paid (before tracking) — out of ${form.tenureMonths || '?'}`}
+                type="number"
+                min="0"
+                max={form.tenureMonths || 0}
+                value={form.preExistingPaid}
+                onChange={v => setForm({ ...form, preExistingPaid: Math.max(0, Math.min(form.tenureMonths || 0, parseInt(v) || 0)) })}
+                placeholder="0 = brand new loan"
+              />
             </div>
 
             {/* Preview */}

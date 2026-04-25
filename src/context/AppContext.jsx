@@ -34,15 +34,58 @@ const initialState = {
   loans:         loadFromStorage('ef_loans',          []),
 }
 
+// ─── Account-balance helpers ───────────────────────────────────────────
+// Single source of truth: every transaction with an accountId adjusts that
+// account's balance. Transfers move money between two accounts atomically.
+function applyTxToAccounts(accounts, tx, sign = 1) {
+  if (!tx) return accounts
+  const amt = (parseFloat(tx.amount) || 0) * sign
+  return accounts.map(a => {
+    if (tx.type === 'transfer') {
+      // Money leaves accountId, enters toAccountId
+      if (a.id === tx.accountId)   return { ...a, balance: (a.balance || 0) - amt }
+      if (a.id === tx.toAccountId) return { ...a, balance: (a.balance || 0) + amt }
+      return a
+    }
+    if (a.id === tx.accountId) {
+      const delta = tx.type === 'income' ? amt : -amt
+      return { ...a, balance: (a.balance || 0) + delta }
+    }
+    return a
+  })
+}
+
 function reducer(state, action) {
   switch (action.type) {
     // Transactions
-    case 'ADD_TRANSACTION':
-      return { ...state, transactions: [{ ...action.payload, id: generateId() }, ...state.transactions] }
-    case 'UPDATE_TRANSACTION':
-      return { ...state, transactions: state.transactions.map(t => t.id === action.payload.id ? action.payload : t) }
-    case 'DELETE_TRANSACTION':
-      return { ...state, transactions: state.transactions.filter(t => t.id !== action.payload) }
+    case 'ADD_TRANSACTION': {
+      const tx = { ...action.payload, id: action.payload.id || generateId() }
+      return {
+        ...state,
+        transactions: [tx, ...state.transactions],
+        accounts: applyTxToAccounts(state.accounts, tx, 1),
+      }
+    }
+    case 'UPDATE_TRANSACTION': {
+      const newTx = action.payload
+      const oldTx = state.transactions.find(t => t.id === newTx.id)
+      // revert old, apply new
+      let nextAccounts = applyTxToAccounts(state.accounts, oldTx, -1)
+      nextAccounts = applyTxToAccounts(nextAccounts, newTx, 1)
+      return {
+        ...state,
+        transactions: state.transactions.map(t => t.id === newTx.id ? newTx : t),
+        accounts: nextAccounts,
+      }
+    }
+    case 'DELETE_TRANSACTION': {
+      const tx = state.transactions.find(t => t.id === action.payload)
+      return {
+        ...state,
+        transactions: state.transactions.filter(t => t.id !== action.payload),
+        accounts: applyTxToAccounts(state.accounts, tx, -1),
+      }
+    }
 
     // Budgets
     case 'ADD_BUDGET':
@@ -124,6 +167,123 @@ function reducer(state, action) {
       return { ...state, stocks: state.stocks.map(s => s.id === action.payload.id ? action.payload : s) }
     case 'DELETE_STOCK':
       return { ...state, stocks: state.stocks.filter(s => s.id !== action.payload) }
+
+    // Compound: invest in MF (transfer from bank → MF, increase units)
+    case 'INVEST_MF': {
+      // payload: { mfId, amount, units, navAtPurchase, fromAccountId, date }
+      const { mfId, amount, units, navAtPurchase, fromAccountId, date } = action.payload
+      const tx = {
+        id: generateId(),
+        type: 'transfer',
+        amount,
+        accountId: fromAccountId,
+        toAccountId: mfId,
+        description: `MF Buy — ${state.mutualFunds.find(m => m.id === mfId)?.name || 'Investment'}`,
+        date: date || new Date().toISOString().slice(0, 10),
+        categoryId: 'tr1',
+        source: 'invest',
+        linkedMfId: mfId,
+      }
+      const updatedMFs = state.mutualFunds.map(m =>
+        m.id === mfId
+          ? {
+              ...m,
+              units: (m.units || 0) + units,
+              // weighted average NAV
+              avgNav: ((m.units || 0) * (m.avgNav || 0) + units * navAtPurchase) / ((m.units || 0) + units || 1),
+            }
+          : m
+      )
+      return {
+        ...state,
+        transactions: [tx, ...state.transactions],
+        accounts: applyTxToAccounts(state.accounts, tx, 1),
+        mutualFunds: updatedMFs,
+      }
+    }
+    // Compound: redeem MF (transfer from MF → bank, reduce units)
+    case 'REDEEM_MF': {
+      const { mfId, amount, units, toAccountId, date } = action.payload
+      const tx = {
+        id: generateId(),
+        type: 'transfer',
+        amount,
+        accountId: mfId,
+        toAccountId,
+        description: `MF Redeem — ${state.mutualFunds.find(m => m.id === mfId)?.name || 'Investment'}`,
+        date: date || new Date().toISOString().slice(0, 10),
+        categoryId: 'tr2',
+        source: 'redeem',
+        linkedMfId: mfId,
+      }
+      const updatedMFs = state.mutualFunds.map(m =>
+        m.id === mfId ? { ...m, units: Math.max(0, (m.units || 0) - units) } : m
+      )
+      return {
+        ...state,
+        transactions: [tx, ...state.transactions],
+        accounts: applyTxToAccounts(state.accounts, { ...tx, type: 'income', amount }, 1),  // money returns to bank as income-flow
+        mutualFunds: updatedMFs,
+      }
+    }
+    // Compound: buy stock
+    case 'BUY_STOCK': {
+      const { stockId, shares, price, fromAccountId, date } = action.payload
+      const amount = shares * price
+      const tx = {
+        id: generateId(),
+        type: 'transfer',
+        amount,
+        accountId: fromAccountId,
+        toAccountId: stockId,
+        description: `Stock Buy — ${state.stocks.find(s => s.id === stockId)?.symbol || 'Equity'}`,
+        date: date || new Date().toISOString().slice(0, 10),
+        categoryId: 'tr3',
+        source: 'invest',
+        linkedStockId: stockId,
+      }
+      const updatedStocks = state.stocks.map(s =>
+        s.id === stockId
+          ? {
+              ...s,
+              shares: (s.shares || 0) + shares,
+              avgCost: ((s.shares || 0) * (s.avgCost || 0) + shares * price) / ((s.shares || 0) + shares || 1),
+            }
+          : s
+      )
+      return {
+        ...state,
+        transactions: [tx, ...state.transactions],
+        accounts: applyTxToAccounts(state.accounts, tx, 1),
+        stocks: updatedStocks,
+      }
+    }
+    // Compound: sell stock
+    case 'SELL_STOCK': {
+      const { stockId, shares, price, toAccountId, date } = action.payload
+      const amount = shares * price
+      const tx = {
+        id: generateId(),
+        type: 'transfer',
+        amount,
+        accountId: stockId,
+        toAccountId,
+        description: `Stock Sell — ${state.stocks.find(s => s.id === stockId)?.symbol || 'Equity'}`,
+        date: date || new Date().toISOString().slice(0, 10),
+        categoryId: 'tr4',
+        source: 'redeem',
+        linkedStockId: stockId,
+      }
+      const updatedStocks = state.stocks.map(s =>
+        s.id === stockId ? { ...s, shares: Math.max(0, (s.shares || 0) - shares) } : s
+      )
+      return {
+        ...state,
+        transactions: [tx, ...state.transactions],
+        accounts: applyTxToAccounts(state.accounts, { ...tx, type: 'income', amount }, 1),
+        stocks: updatedStocks,
+      }
+    }
 
     // Accounts
     case 'ADD_ACCOUNT':
@@ -208,7 +368,10 @@ function reducer(state, action) {
       // Prepend imported transactions, skip duplicates by date+amount+description
       const existing = new Set(state.transactions.map(t => `${t.date}|${t.amount}|${t.description}`))
       const newTxs = action.payload.filter(t => !existing.has(`${t.date}|${t.amount}|${t.description}`))
-      return { ...state, transactions: [...newTxs, ...state.transactions] }
+      // Apply each new tx to account balances
+      let nextAccounts = state.accounts
+      for (const tx of newTxs) nextAccounts = applyTxToAccounts(nextAccounts, tx, 1)
+      return { ...state, transactions: [...newTxs, ...state.transactions], accounts: nextAccounts }
     }
     case 'IMPORT_BACKUP': {
       // Full restore from JSON backup — replaces all data

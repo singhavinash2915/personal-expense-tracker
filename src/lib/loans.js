@@ -46,16 +46,22 @@ export function amortizationSchedule(loan) {
  */
 export function loanStatus(loan, paidTransactions = []) {
   const schedule = amortizationSchedule(loan)
-  const paidCount = paidTransactions.length
+  // EMIs already paid BEFORE you started tracking (existing loan support)
+  const preExistingPaid = parseInt(loan.preExistingPaid || 0, 10) || 0
+  // EMIs paid via the app
+  const newlyPaid = paidTransactions.length
+  const paidCount = preExistingPaid + newlyPaid
+
   const paidPrincipal = schedule.slice(0, paidCount).reduce((s, x) => s + x.principal, 0)
   const paidInterest = schedule.slice(0, paidCount).reduce((s, x) => s + x.interest, 0)
-  const remaining = schedule.length - paidCount
-  const outstanding = loan.principal - paidPrincipal
-  const nextDueIdx = paidCount
-  const nextDue = schedule[nextDueIdx] || null
+  const remaining = Math.max(0, schedule.length - paidCount)
+  const outstanding = Math.max(0, loan.principal - paidPrincipal)
+  const nextDue = schedule[paidCount] || null
   return {
     schedule,
     paidCount,
+    preExistingPaid,
+    newlyPaid,
     remaining,
     outstanding,
     paidPrincipal,
