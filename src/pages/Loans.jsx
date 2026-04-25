@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useApp } from '../context/AppContext'
 import { formatINR, generateId } from '../lib/utils'
-import { calculateEMI, amortizationSchedule, loanStatus, buildEMITransactions } from '../lib/loans'
 
 const LOAN_TYPES = [
   { id: 'home',     icon: '🏠', label: 'Home Loan' },
@@ -15,173 +14,234 @@ const LOAN_TYPES = [
 const EMPTY_LOAN = {
   name: '',
   type: 'home',
-  principal: 0,
-  annualRate: 8.5,
-  tenureMonths: 120,
-  startDate: new Date().toISOString().slice(0, 10),
   lender: '',
-  preExistingPaid: 0,  // EMIs already paid before tracking in app
+  monthlyEMI: '',
+  totalEMIs: '',
+  paidEMIs: '',
+  dueDay: 5,                 // day of month
+  fromAccountId: '',
+  active: true,
 }
+
+// Helper: pick the loan EMI category id (Finance)
+const EMI_CATEGORY_ID = 'c1'
 
 export default function Loans() {
   const { state, dispatch } = useApp()
   const loans = state.loans || []
   const [showForm, setShowForm] = useState(false)
+  const [editLoan, setEditLoan] = useState(null)
   const [form, setForm] = useState(EMPTY_LOAN)
-  const [payingLoan, setPayingLoan] = useState(null)
+
+  function openAdd() {
+    setForm({ ...EMPTY_LOAN, fromAccountId: state.accounts[0]?.id || '' })
+    setEditLoan(null)
+    setShowForm(true)
+  }
+  function openEdit(loan) {
+    setForm({
+      ...loan,
+      monthlyEMI: String(loan.monthlyEMI || ''),
+      totalEMIs:  String(loan.totalEMIs  || ''),
+      paidEMIs:   String(loan.paidEMIs   || 0),
+      dueDay:     loan.dueDay || 5,
+    })
+    setEditLoan(loan)
+    setShowForm(true)
+  }
 
   function saveLoan() {
-    if (!form.name || !form.principal) return
-    const loan = { ...form, id: generateId(), createdAt: new Date().toISOString() }
-    dispatch({ type: 'ADD_LOAN', payload: loan })
+    if (!form.name || !form.monthlyEMI || !form.totalEMIs) {
+      alert('Please fill name, monthly EMI, and total EMIs')
+      return
+    }
+    const payload = {
+      ...form,
+      monthlyEMI: parseFloat(form.monthlyEMI) || 0,
+      totalEMIs:  parseInt(form.totalEMIs)    || 0,
+      paidEMIs:   parseInt(form.paidEMIs)     || 0,
+      dueDay:     parseInt(form.dueDay) || 5,
+    }
+    if (editLoan) {
+      dispatch({ type: 'UPDATE_LOAN', payload: { ...editLoan, ...payload } })
+    } else {
+      dispatch({ type: 'ADD_LOAN', payload: { ...payload, id: generateId(), createdAt: new Date().toISOString() } })
+    }
     setShowForm(false)
-    setForm(EMPTY_LOAN)
   }
 
   function deleteLoan(id) {
-    if (!confirm('Delete this loan? EMI history stays.')) return
+    if (!confirm('Delete this loan?')) return
     dispatch({ type: 'DELETE_LOAN', payload: id })
   }
 
-  function payNextEMI(loan) {
-    const paidTxs = state.transactions.filter(t => t.linkedLoanId === loan.id && t.type === 'transfer')
-    const status = loanStatus(loan, paidTxs)
-    if (!status.nextDue) { alert('No more EMIs — loan fully paid!'); return }
-    const firstAccount = state.accounts[0]?.id
-    if (!firstAccount) { alert('Add a bank account first'); return }
-    const txs = buildEMITransactions(loan, status.nextDue, new Date().toISOString().slice(0, 10), firstAccount)
-    dispatch({ type: 'IMPORT_STATEMENT', payload: txs })
-    setPayingLoan(null)
+  // ── Pay one month's EMI: creates expense from account ──────────────────
+  function payEMI(loan) {
+    if (!loan.fromAccountId) {
+      alert('No source account set on this loan. Edit and select one.')
+      return
+    }
+    if ((loan.paidEMIs || 0) >= loan.totalEMIs) {
+      alert('All EMIs already paid! 🎉')
+      return
+    }
+    const nextNumber = (loan.paidEMIs || 0) + 1
+    const today = new Date().toISOString().slice(0, 10)
+    const tx = {
+      id: generateId(),
+      accountId: loan.fromAccountId,
+      categoryId: EMI_CATEGORY_ID,
+      type: 'expense',
+      amount: loan.monthlyEMI,
+      date: today,
+      description: `EMI #${nextNumber} — ${loan.name}`,
+      source: 'emi',
+      linkedLoanId: loan.id,
+    }
+    dispatch({ type: 'ADD_TRANSACTION', payload: tx })
+    dispatch({ type: 'UPDATE_LOAN', payload: { ...loan, paidEMIs: nextNumber } })
   }
 
-  const emi = useMemo(() => calculateEMI(form.principal, form.annualRate, form.tenureMonths), [form])
-  const totalInterest = useMemo(() => {
-    if (!form.principal) return 0
-    return emi * form.tenureMonths - form.principal
-  }, [emi, form])
+  // Total monthly outflow from active loans
+  const totalMonthlyEMI = useMemo(
+    () => loans.filter(l => l.active !== false).reduce((s, l) => s + (l.monthlyEMI || 0), 0),
+    [loans]
+  )
+  const totalOutstanding = useMemo(
+    () => loans.reduce((s, l) => s + (l.monthlyEMI || 0) * Math.max(0, (l.totalEMIs || 0) - (l.paidEMIs || 0)), 0),
+    [loans]
+  )
 
   return (
     <div className="space-y-4 overflow-x-hidden">
       {/* Hero */}
-      <div className="rounded-2xl p-4 md:p-5 relative overflow-hidden" style={{
-        background: 'linear-gradient(135deg, #0f172a, #1e293b, #7c2d12)'
-      }}>
-        <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full opacity-20" style={{ background: 'radial-gradient(circle, #f97316, transparent 70%)' }} />
-        <div className="relative z-10">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-orange-300/70">Total Outstanding</p>
-              <p className="text-2xl md:text-3xl font-extrabold text-white">
-                {formatINR(loans.reduce((s, l) => {
-                  const paid = state.transactions.filter(t => t.linkedLoanId === l.id && t.type === 'transfer')
-                  const status = loanStatus(l, paid)
-                  return s + status.outstanding
-                }, 0))}
-              </p>
-              <p className="text-xs text-orange-200/70 mt-1">{loans.length} active loan{loans.length !== 1 ? 's' : ''}</p>
-            </div>
-            <button onClick={() => setShowForm(true)}
-              className="px-4 py-2 rounded-xl text-sm font-semibold text-white"
-              style={{ background: 'linear-gradient(135deg, #f97316, #fb923c)' }}>
-              + Add Loan
-            </button>
+      <div className="hero-card">
+        <div className="flex items-start justify-between relative z-10 gap-3">
+          <div className="min-w-0 flex-1">
+            <div className="label-mono">— Total Outstanding</div>
+            <p className="amount-hero truncate" style={{ marginTop: 6 }}>
+              <span className="rupee">₹</span>
+              {new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(totalOutstanding)}
+            </p>
+            <p className="body-secondary" style={{ fontSize: 12, marginTop: 6 }}>
+              {loans.length} loan{loans.length !== 1 ? 's' : ''} ·{' '}
+              <span style={{ color: 'var(--gold)' }}>{formatINR(totalMonthlyEMI)}/mo</span> committed
+            </p>
           </div>
+          <button onClick={openAdd} className="btn btn-primary flex-shrink-0" style={{ padding: '10px 18px' }}>
+            + Add Loan
+          </button>
         </div>
       </div>
 
-      {/* How EMIs work */}
-      <div className="card p-3 flex items-start gap-2.5">
-        <span className="text-xl">💡</span>
-        <p className="text-xs text-slate-300">
-          <strong>How it works:</strong> Each EMI payment creates 2 linked transactions — the <em>principal</em> becomes a transfer (reduces your debt), and the <em>interest</em> becomes an expense. Your net worth updates automatically.
+      {/* How it works */}
+      <div className="card p-3 flex items-start gap-3">
+        <span className="text-xl" style={{ flexShrink: 0 }}>💡</span>
+        <p className="body-secondary" style={{ fontSize: 13 }}>
+          <strong style={{ color: 'var(--text-primary)' }}>How EMIs work:</strong> Each "Pay" tap creates an expense
+          on your linked account. We track <em style={{ fontStyle: 'italic', color: 'var(--gold)' }}>how many EMIs are left</em> —
+          no complex amortization needed.
         </p>
       </div>
 
       {/* Loan list */}
       {loans.length === 0 ? (
-        <div className="card p-8 text-center">
-          <p className="text-4xl mb-2">🏦</p>
-          <p className="text-sm text-slate-400 mb-4">No loans tracked yet</p>
-          <button onClick={() => setShowForm(true)}
-            className="px-5 py-2 rounded-xl text-sm font-semibold text-white"
-            style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}>
-            Add Your First Loan
-          </button>
+        <div className="card empty-state">
+          <div className="emoji">🏦</div>
+          <p className="message">No loans tracked yet.</p>
+          <p className="hint">Add your home loan, car loan, or any EMI you pay monthly.</p>
+          <button onClick={openAdd} className="btn btn-primary mt-4">Add Your First Loan</button>
         </div>
       ) : (
         <div className="space-y-3">
           {loans.map(l => {
-            const paid = state.transactions.filter(t => t.linkedLoanId === l.id && t.type === 'transfer')
-            const status = loanStatus(l, paid)
-            const progress = (status.paidCount / l.tenureMonths) * 100
             const type = LOAN_TYPES.find(x => x.id === l.type) || LOAN_TYPES[5]
+            const remaining = Math.max(0, (l.totalEMIs || 0) - (l.paidEMIs || 0))
+            const outstanding = remaining * (l.monthlyEMI || 0)
+            const progress = l.totalEMIs > 0 ? ((l.paidEMIs || 0) / l.totalEMIs) * 100 : 0
+            const fullyPaid = remaining === 0
+            const fromAcc = state.accounts.find(a => a.id === l.fromAccountId)
+
             return (
               <div key={l.id} className="card p-4">
+                {/* Header */}
                 <div className="flex items-start gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0" style={{ background: 'rgba(249,115,22,0.15)' }}>
-                    {type.icon}
-                  </div>
+                  <div className="txn-ico flex-shrink-0">{type.icon}</div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
-                      <p className="text-sm font-semibold text-white truncate">{l.name}</p>
-                      <button onClick={() => deleteLoan(l.id)} className="text-rose-400 text-xs">Delete</button>
+                      <p className="font-display truncate" style={{ fontSize: 16, fontWeight: 500, color: 'var(--text-primary)' }}>
+                        {l.name}
+                      </p>
+                      <div className="flex gap-1 flex-shrink-0">
+                        <button onClick={() => openEdit(l)} className="p-1.5 rounded-lg" style={{ color: 'var(--text-muted)' }}>
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </button>
+                        <button onClick={() => deleteLoan(l.id)} className="p-1.5 rounded-lg" style={{ color: 'var(--danger)' }}>
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3" />
+                          </svg>
+                        </button>
+                      </div>
                     </div>
-                    <p className="text-[10px] text-slate-400">{l.lender || type.label} · {l.annualRate}%</p>
+                    <p className="label-mono" style={{ fontSize: 9, marginTop: 2 }}>
+                      {l.lender || type.label.toUpperCase()} · DUE DAY {l.dueDay}
+                    </p>
                   </div>
                 </div>
 
-                {/* Outstanding */}
-                <div className="mb-3">
-                  <div className="flex items-end justify-between">
-                    <div>
-                      <p className="text-[10px] uppercase text-slate-400">Outstanding</p>
-                      <p className="text-lg font-bold text-rose-300">{formatINR(status.outstanding)}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-[10px] uppercase text-slate-400">EMI</p>
-                      <p className="text-sm font-bold text-white">{formatINR(status.nextDue?.emi || 0)}/mo</p>
-                    </div>
+                {/* Stats row */}
+                <div className="grid grid-cols-3 gap-2 mb-3">
+                  <div className="asset-tile" style={{ padding: 10 }}>
+                    <div className="tile-label" style={{ fontSize: 9 }}>EMI/MONTH</div>
+                    <div className="tile-value" style={{ fontSize: 16, color: 'var(--text-primary)' }}>{formatINR(l.monthlyEMI || 0)}</div>
+                  </div>
+                  <div className="asset-tile" style={{ padding: 10 }}>
+                    <div className="tile-label" style={{ fontSize: 9 }}>OUTSTANDING</div>
+                    <div className="tile-value negative" style={{ fontSize: 16 }}>{formatINR(outstanding)}</div>
+                  </div>
+                  <div className="asset-tile" style={{ padding: 10 }}>
+                    <div className="tile-label" style={{ fontSize: 9 }}>EMIS LEFT</div>
+                    <div className="tile-value" style={{ fontSize: 16, color: 'var(--gold)' }}>{remaining}</div>
                   </div>
                 </div>
 
                 {/* Progress */}
                 <div className="mb-3">
-                  <div className="flex justify-between text-[10px] mb-1">
-                    <span className="text-slate-400">{status.paidCount}/{l.tenureMonths} EMIs paid</span>
-                    <span className="text-slate-400">{status.remaining} left</span>
-                  </div>
-                  <div className="h-2 rounded-full bg-white/5 overflow-hidden">
-                    <div className="h-full rounded-full"
-                      style={{ width: `${progress}%`, background: 'linear-gradient(90deg, #f97316, #fbbf24)' }} />
-                  </div>
-                </div>
-
-                {/* Interest breakdown */}
-                <div className="grid grid-cols-3 gap-2 mb-3 text-center">
-                  <div className="rounded-lg p-1.5 bg-white/5">
-                    <p className="text-[9px] text-slate-400">Principal Paid</p>
-                    <p className="text-[11px] font-semibold text-emerald-300">{formatINR(status.paidPrincipal)}</p>
-                  </div>
-                  <div className="rounded-lg p-1.5 bg-white/5">
-                    <p className="text-[9px] text-slate-400">Interest Paid</p>
-                    <p className="text-[11px] font-semibold text-rose-300">{formatINR(status.paidInterest)}</p>
-                  </div>
-                  <div className="rounded-lg p-1.5 bg-white/5">
-                    <p className="text-[9px] text-slate-400">Total Interest</p>
-                    <p className="text-[11px] font-semibold text-amber-300">{formatINR(status.totalInterest)}</p>
-                  </div>
-                </div>
-
-                {/* Action */}
-                {status.nextDue && (
-                  <button onClick={() => payNextEMI(l)}
-                    className="w-full py-2 rounded-xl text-sm font-semibold text-white"
-                    style={{ background: 'linear-gradient(135deg, #059669, #10b981)' }}>
-                    Pay EMI #{status.nextDue.month} · {formatINR(status.nextDue.emi)}
-                    <span className="block text-[10px] font-normal opacity-80">
-                      P: {formatINR(status.nextDue.principal)} + I: {formatINR(status.nextDue.interest)}
+                  <div className="flex justify-between mb-1">
+                    <span className="label-mono" style={{ fontSize: 9 }}>{l.paidEMIs || 0} / {l.totalEMIs} PAID</span>
+                    <span className="label-mono" style={{ fontSize: 9, color: fullyPaid ? 'var(--emerald)' : 'var(--gold)' }}>
+                      {progress.toFixed(0)}%
                     </span>
+                  </div>
+                  <div className="progress-track">
+                    <div
+                      className={`progress-fill ${fullyPaid ? 'ok' : progress > 70 ? 'warn' : 'ok'}`}
+                      style={{ width: `${Math.min(100, progress)}%`, background: fullyPaid ? 'var(--emerald)' : 'var(--gradient-fab)' }}
+                    />
+                  </div>
+                </div>
+
+                {/* Pay action */}
+                {!fullyPaid && (
+                  <button
+                    onClick={() => payEMI(l)}
+                    className="btn btn-primary w-full"
+                    style={{ padding: 12 }}
+                  >
+                    Pay EMI #{(l.paidEMIs || 0) + 1} · {formatINR(l.monthlyEMI || 0)}
                   </button>
+                )}
+                {fullyPaid && (
+                  <p className="text-center label-mono" style={{ fontSize: 11, color: 'var(--emerald)', padding: 8 }}>
+                    ✓ Loan fully paid
+                  </p>
+                )}
+                {fromAcc && !fullyPaid && (
+                  <p className="text-center label-mono" style={{ fontSize: 9, marginTop: 6 }}>
+                    — Debits from {fromAcc.name}
+                  </p>
                 )}
               </div>
             )
@@ -189,61 +249,124 @@ export default function Loans() {
         </div>
       )}
 
-      {/* Add form modal */}
+      {/* Add/Edit Form Modal */}
       {showForm && (
-        <div className="fixed inset-0 z-[80] flex items-end md:items-center md:justify-center"
-          style={{ background: 'rgba(5,3,20,0.8)', backdropFilter: 'blur(4px)' }} onClick={() => setShowForm(false)}>
-          <div onClick={e => e.stopPropagation()}
-            className="w-full md:w-[480px] max-h-[92vh] overflow-y-auto rounded-t-3xl md:rounded-3xl p-5 animate-sheet-up md:animate-fadeIn"
-            style={{ background: 'linear-gradient(135deg, #0f172a, #1e1b4b, #312e81)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
-            <div className="md:hidden w-10 h-1 rounded-full bg-white/20 mx-auto mb-4" />
-            <h3 className="text-base font-bold text-white mb-4">Add Loan</h3>
-            <div className="space-y-3 text-sm">
-              <Input label="Loan Name" value={form.name} onChange={v => setForm({ ...form, name: v })} placeholder="e.g. Home Loan HDFC" />
+        <div
+          className="fixed inset-0 z-[80] flex items-end md:items-center md:justify-center"
+          style={{ background: 'rgba(3,17,13,0.85)', backdropFilter: 'blur(10px)' }}
+          onClick={() => setShowForm(false)}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            className="w-full md:w-[460px] max-h-[92vh] overflow-y-auto p-5 animate-sheet-up md:animate-fadeIn"
+            style={{
+              background: 'var(--bg-surface)',
+              border: '1px solid var(--border-default)',
+              borderRadius: '28px 28px 0 0',
+              paddingBottom: 'calc(env(safe-area-inset-bottom) + 1.5rem)',
+            }}
+          >
+            <div className="md:hidden w-10 h-1 rounded-full mx-auto mb-4" style={{ background: 'var(--border-default)' }} />
+
+            <div className="flex items-center justify-between mb-4">
               <div>
-                <label className="text-xs text-slate-400 mb-1 block">Type</label>
+                <div className="label-mono" style={{ fontSize: 10 }}>— {editLoan ? 'Edit' : 'New'}</div>
+                <h3 className="heading" style={{ fontSize: 22, marginTop: 4 }}>{editLoan ? 'Edit Loan' : 'Add Loan'}</h3>
+              </div>
+              <button onClick={() => setShowForm(false)} className="p-2 rounded-xl"
+                style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', color: 'var(--text-muted)' }}>×</button>
+            </div>
+
+            <div className="space-y-3">
+              <Field label="Loan Name *">
+                <input className="input" placeholder="e.g. Home Loan HDFC"
+                  value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
+              </Field>
+
+              <Field label="Type">
                 <div className="grid grid-cols-3 gap-2">
                   {LOAN_TYPES.map(t => (
-                    <button key={t.id} onClick={() => setForm({ ...form, type: t.id })}
-                      className={`p-2 rounded-lg text-xs border ${form.type === t.id ? 'border-indigo-400 bg-indigo-500/15' : 'border-white/10'}`}>
-                      <div className="text-lg">{t.icon}</div>
-                      <p className="text-white truncate">{t.label}</p>
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => setForm({ ...form, type: t.id })}
+                      className="p-2 text-center"
+                      style={{
+                        borderRadius: 'var(--r-md)',
+                        background: form.type === t.id ? 'var(--gold-dim)' : 'var(--bg-elevated)',
+                        border: `1px solid ${form.type === t.id ? 'rgba(251,191,36,0.4)' : 'var(--border-default)'}`,
+                        color: form.type === t.id ? 'var(--gold)' : 'var(--text-secondary)',
+                      }}
+                    >
+                      <div style={{ fontSize: 18 }}>{t.icon}</div>
+                      <div style={{ fontSize: 10, marginTop: 2, fontWeight: 600 }}>{t.label.replace(' Loan', '')}</div>
                     </button>
                   ))}
                 </div>
-              </div>
-              <Input label="Lender" value={form.lender} onChange={v => setForm({ ...form, lender: v })} placeholder="HDFC / SBI / …" />
-              <Input label="Principal (₹)" type="number" value={form.principal} onChange={v => setForm({ ...form, principal: +v })} />
+              </Field>
+
+              <Field label="Lender">
+                <input className="input" placeholder="HDFC / SBI / …"
+                  value={form.lender} onChange={e => setForm({ ...form, lender: e.target.value })} />
+              </Field>
+
               <div className="grid grid-cols-2 gap-2">
-                <Input label="Annual Rate %" type="number" step="0.01" value={form.annualRate} onChange={v => setForm({ ...form, annualRate: +v })} />
-                <Input label="Tenure (months)" type="number" value={form.tenureMonths} onChange={v => setForm({ ...form, tenureMonths: +v })} />
+                <Field label="Monthly EMI (₹) *">
+                  <input className="input" type="number" placeholder="48500"
+                    value={form.monthlyEMI} onChange={e => setForm({ ...form, monthlyEMI: e.target.value })} />
+                </Field>
+                <Field label="Due day of month">
+                  <input className="input" type="number" min="1" max="28" placeholder="5"
+                    value={form.dueDay} onChange={e => setForm({ ...form, dueDay: e.target.value })} />
+                </Field>
               </div>
-              <Input label="Start Date (original)" type="date" value={form.startDate} onChange={v => setForm({ ...form, startDate: v })} />
-              <Input
-                label={`EMIs already paid (before tracking) — out of ${form.tenureMonths || '?'}`}
-                type="number"
-                min="0"
-                max={form.tenureMonths || 0}
-                value={form.preExistingPaid}
-                onChange={v => setForm({ ...form, preExistingPaid: Math.max(0, Math.min(form.tenureMonths || 0, parseInt(v) || 0)) })}
-                placeholder="0 = brand new loan"
-              />
-            </div>
 
-            {/* Preview */}
-            {form.principal > 0 && (
-              <div className="mt-4 rounded-2xl p-3 bg-white/5 border border-white/10">
-                <div className="grid grid-cols-2 gap-2 text-xs text-white">
-                  <div><p className="text-slate-400">Monthly EMI</p><p className="font-bold">{formatINR(emi)}</p></div>
-                  <div><p className="text-slate-400">Total Interest</p><p className="font-bold text-rose-300">{formatINR(totalInterest)}</p></div>
+              <div className="grid grid-cols-2 gap-2">
+                <Field label="Total EMIs *">
+                  <input className="input" type="number" placeholder="180"
+                    value={form.totalEMIs} onChange={e => setForm({ ...form, totalEMIs: e.target.value })} />
+                </Field>
+                <Field label="EMIs already paid">
+                  <input className="input" type="number" placeholder="0"
+                    value={form.paidEMIs} onChange={e => setForm({ ...form, paidEMIs: e.target.value })} />
+                </Field>
+              </div>
+
+              <Field label="Pay from account *">
+                <select className="input select"
+                  value={form.fromAccountId}
+                  onChange={e => setForm({ ...form, fromAccountId: e.target.value })}>
+                  <option value="">Select account</option>
+                  {state.accounts.map(a => (
+                    <option key={a.id} value={a.id}>{a.name} — {formatINR(a.balance || 0)}</option>
+                  ))}
+                </select>
+              </Field>
+
+              {/* Preview */}
+              {form.monthlyEMI && form.totalEMIs && (
+                <div className="rounded-2xl p-3" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-default)' }}>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <div className="label-mono" style={{ fontSize: 9 }}>OUTSTANDING</div>
+                      <div className="font-display" style={{ fontSize: 16, color: 'var(--danger)' }}>
+                        {formatINR((parseFloat(form.monthlyEMI) || 0) * Math.max(0, (parseInt(form.totalEMIs) || 0) - (parseInt(form.paidEMIs) || 0)))}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="label-mono" style={{ fontSize: 9 }}>TOTAL PAYABLE</div>
+                      <div className="font-display" style={{ fontSize: 16, color: 'var(--text-primary)' }}>
+                        {formatINR((parseFloat(form.monthlyEMI) || 0) * (parseInt(form.totalEMIs) || 0))}
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            <div className="flex gap-2 mt-4">
-              <button onClick={() => setShowForm(false)} className="flex-1 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm">Cancel</button>
-              <button onClick={saveLoan} className="flex-1 py-2.5 rounded-xl font-semibold text-white"
-                style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}>Save Loan</button>
+              <div className="flex gap-2 pt-2">
+                <button onClick={() => setShowForm(false)} className="btn btn-secondary flex-1">Cancel</button>
+                <button onClick={saveLoan} className="btn btn-primary flex-1">{editLoan ? 'Save Changes' : 'Add Loan'}</button>
+              </div>
             </div>
           </div>
         </div>
@@ -252,13 +375,11 @@ export default function Loans() {
   )
 }
 
-function Input({ label, value, onChange, type = 'text', ...rest }) {
+function Field({ label, children }) {
   return (
     <div>
-      <label className="text-xs text-slate-400 mb-1 block">{label}</label>
-      <input type={type} value={value} onChange={e => onChange(e.target.value)} {...rest}
-        className="w-full px-3 py-2 rounded-lg bg-white/5 border border-indigo-500/20 text-white focus:outline-none focus:border-indigo-400"
-        style={{ fontSize: '16px' }} />
+      <label className="label-mono" style={{ fontSize: 10, display: 'block', marginBottom: 6 }}>— {label}</label>
+      {children}
     </div>
   )
 }

@@ -147,8 +147,34 @@ html.light {
 
   /* Base text defaults */
   h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: -0.02em; color: var(--text-primary); }
-  input, textarea, select, button { font-family: var(--font-body); color: inherit; }
-  input, textarea, select { font-size: 16px; /* prevents iOS zoom */ }
+
+  /* Global input/select/textarea baseline — guarantees readable contrast
+     even when legacy `.input-field` class (undefined) leaves browser defaults */
+  input, textarea, select, button { font-family: var(--font-body); }
+  input, textarea, select {
+    font-size: 16px;             /* prevents iOS zoom */
+    color: var(--text-primary);
+    background-color: var(--bg-elevated);
+    border: 1px solid var(--border-default);
+    border-radius: var(--r-md);
+    padding: 10px 14px;
+    outline: none;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  input::placeholder, textarea::placeholder { color: var(--text-dim); }
+  input:focus, textarea:focus, select:focus {
+    border-color: var(--border-accent);
+    background-color: var(--bg-elevated-hover);
+  }
+  /* Date pickers / number arrows tone-down */
+  input[type="date"]::-webkit-calendar-picker-indicator,
+  input[type="time"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.7) sepia(1) saturate(2) hue-rotate(40deg);
+    cursor: pointer;
+  }
+
+  /* Buttons keep their native bg/border by default */
+  button { background: transparent; border: none; cursor: pointer; }
 }
 
 /* ─── COMPONENT LAYER ─────────────────────────────────────────── */
@@ -618,6 +644,25 @@ html.light {
 
 /* Legacy utility classes used across existing pages */
 .btn-ghost.p-2, .btn-ghost.p-1\.5 { padding: 6px 8px; background: transparent; }
+
+/* Legacy .input-field — map to new .input look so typed text stays visible */
+.input-field {
+  width: 100%;
+  background: var(--bg-elevated) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-default) !important;
+  border-radius: var(--r-md);
+  padding: 10px 14px;
+  font-size: 16px;
+  font-family: var(--font-body);
+  outline: none;
+  transition: border-color 0.2s;
+}
+.input-field::placeholder { color: var(--text-dim); }
+.input-field:focus {
+  border-color: var(--border-accent) !important;
+  background: var(--bg-elevated-hover) !important;
+}
 .badge-violet {
   background: var(--gold-dim);
   color: var(--gold);
