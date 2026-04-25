@@ -59,7 +59,7 @@ function reducer(state, action) {
   switch (action.type) {
     // Transactions
     case 'ADD_TRANSACTION': {
-      const tx = { ...action.payload, id: action.payload.id || generateId() }
+      const tx = { ...action.payload, id: action.payload.id || generateId(), appliedToBalance: true }
       return {
         ...state,
         transactions: [tx, ...state.transactions],
@@ -67,10 +67,11 @@ function reducer(state, action) {
       }
     }
     case 'UPDATE_TRANSACTION': {
-      const newTx = action.payload
+      const newTx = { ...action.payload, appliedToBalance: true }
       const oldTx = state.transactions.find(t => t.id === newTx.id)
-      // revert old, apply new
-      let nextAccounts = applyTxToAccounts(state.accounts, oldTx, -1)
+      // Only revert old if it had been applied
+      let nextAccounts = state.accounts
+      if (oldTx?.appliedToBalance) nextAccounts = applyTxToAccounts(nextAccounts, oldTx, -1)
       nextAccounts = applyTxToAccounts(nextAccounts, newTx, 1)
       return {
         ...state,
@@ -80,10 +81,37 @@ function reducer(state, action) {
     }
     case 'DELETE_TRANSACTION': {
       const tx = state.transactions.find(t => t.id === action.payload)
+      // Only revert if it had been applied
+      const nextAccounts = tx?.appliedToBalance
+        ? applyTxToAccounts(state.accounts, tx, -1)
+        : state.accounts
       return {
         ...state,
         transactions: state.transactions.filter(t => t.id !== action.payload),
-        accounts: applyTxToAccounts(state.accounts, tx, -1),
+        accounts: nextAccounts,
+      }
+    }
+    // One-time backfill: applies any historical transactions that pre-date
+    // the auto-balance fix. Idempotent — won't double-count.
+    case 'RECALCULATE_BALANCES': {
+      let nextAccounts = state.accounts
+      const updatedTxs = []
+      let appliedCount = 0
+      for (const t of state.transactions) {
+        if (t.appliedToBalance) {
+          updatedTxs.push(t)
+        } else {
+          nextAccounts = applyTxToAccounts(nextAccounts, t, 1)
+          updatedTxs.push({ ...t, appliedToBalance: true })
+          appliedCount++
+        }
+      }
+      // Stash count so the UI can show feedback (one-shot, cleared by next dispatch)
+      return {
+        ...state,
+        accounts: nextAccounts,
+        transactions: updatedTxs,
+        _lastRecalcCount: appliedCount,
       }
     }
 
@@ -365,10 +393,10 @@ function reducer(state, action) {
     case 'IMPORT_DATA':
       return { ...state, transactions: action.payload }
     case 'IMPORT_STATEMENT': {
-      // Prepend imported transactions, skip duplicates by date+amount+description
       const existing = new Set(state.transactions.map(t => `${t.date}|${t.amount}|${t.description}`))
-      const newTxs = action.payload.filter(t => !existing.has(`${t.date}|${t.amount}|${t.description}`))
-      // Apply each new tx to account balances
+      const newTxs = action.payload
+        .filter(t => !existing.has(`${t.date}|${t.amount}|${t.description}`))
+        .map(t => ({ ...t, appliedToBalance: true }))
       let nextAccounts = state.accounts
       for (const tx of newTxs) nextAccounts = applyTxToAccounts(nextAccounts, tx, 1)
       return { ...state, transactions: [...newTxs, ...state.transactions], accounts: nextAccounts }

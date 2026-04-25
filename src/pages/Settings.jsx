@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Plus, Trash2, Edit2, X, Download, Upload, Moon, Sun, Shield } from 'lucide-react'
 import { useApp } from '../context/AppContext'
-import { generateId } from '../lib/utils'
+import { generateId, formatINR } from '../lib/utils'
 
 const EMPTY_CAT = { name: '', icon: '📦', color: '#7c3aed', type: 'expense' }
 
@@ -226,6 +226,9 @@ export default function Settings() {
       {/* Data & Export Tab */}
       {activeTab === 'data' && (
         <div className="space-y-4">
+
+          {/* ── Recalculate Balances (one-time backfill) ── */}
+          <RecalculateBalancesCard />
 
           {/* ── JSON Full Backup ── */}
           <div className="card p-5 md:p-6" style={{ borderColor: 'rgba(245,158,11,0.25)' }}>
@@ -506,6 +509,110 @@ export default function Settings() {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+// ── Recalculate Balances Card ───────────────────────────────────────
+function RecalculateBalancesCard() {
+  const { state, dispatch } = useApp()
+  const [confirming, setConfirming] = useState(false)
+  const [done, setDone] = useState(null) // { count, before }
+
+  // Count of unapplied transactions
+  const unappliedCount = (state.transactions || []).filter(t => !t.appliedToBalance).length
+  const totalIn  = (state.transactions || [])
+    .filter(t => !t.appliedToBalance && t.type === 'income').reduce((s, t) => s + (t.amount || 0), 0)
+  const totalOut = (state.transactions || [])
+    .filter(t => !t.appliedToBalance && t.type === 'expense').reduce((s, t) => s + (t.amount || 0), 0)
+  const netDelta = totalIn - totalOut
+
+  function recalc() {
+    const before = (state.accounts || []).reduce((s, a) => s + (a.balance || 0), 0)
+    dispatch({ type: 'RECALCULATE_BALANCES' })
+    setDone({ count: unappliedCount, before })
+    setConfirming(false)
+    setTimeout(() => setDone(null), 8000)
+  }
+
+  return (
+    <div className="card p-5 md:p-6" style={{ borderColor: 'var(--border-accent)' }}>
+      <div className="flex items-start gap-4">
+        <div
+          className="w-12 h-12 rounded-xl flex-shrink-0 flex items-center justify-center text-2xl"
+          style={{ background: 'var(--gold-dim)', border: '1px solid rgba(251,191,36,0.3)' }}
+        >
+          ⚖️
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="label-mono" style={{ fontSize: 10 }}>— Maintenance</div>
+          <h4 className="heading" style={{ fontSize: 18, marginTop: 4 }}>
+            Recalculate Account Balances
+          </h4>
+          <p className="body-secondary" style={{ fontSize: 13, marginTop: 6 }}>
+            Replays old transactions onto your account balances. Use this once if your old
+            transactions aren't reflected in your <em style={{ fontStyle: 'italic', color: 'var(--gold)' }}>Net Worth</em>.
+          </p>
+
+          {unappliedCount === 0 && !done && (
+            <p className="label-mono" style={{ fontSize: 10, marginTop: 12, color: 'var(--emerald)' }}>
+              ✓ All transactions already applied. Nothing to recalculate.
+            </p>
+          )}
+
+          {unappliedCount > 0 && !done && (
+            <div className="rounded-2xl p-3 mt-3" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-default)' }}>
+              <div className="flex justify-between text-sm">
+                <span style={{ color: 'var(--text-secondary)' }}>Unapplied transactions</span>
+                <span className="font-display" style={{ color: 'var(--text-primary)' }}>{unappliedCount}</span>
+              </div>
+              <div className="flex justify-between text-sm mt-1">
+                <span style={{ color: 'var(--text-secondary)' }}>Total income to apply</span>
+                <span className="font-display" style={{ color: 'var(--emerald)' }}>+{formatINR(totalIn)}</span>
+              </div>
+              <div className="flex justify-between text-sm mt-1">
+                <span style={{ color: 'var(--text-secondary)' }}>Total expenses to apply</span>
+                <span className="font-display" style={{ color: 'var(--danger)' }}>−{formatINR(totalOut)}</span>
+              </div>
+              <div className="flex justify-between text-sm mt-2 pt-2" style={{ borderTop: '1px solid var(--border-subtle)' }}>
+                <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>Net change to balances</span>
+                <span className="font-display" style={{ color: netDelta >= 0 ? 'var(--emerald)' : 'var(--danger)', fontSize: 16 }}>
+                  {netDelta >= 0 ? '+' : '\u2212'}{formatINR(Math.abs(netDelta))}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {done && (
+            <div
+              className="rounded-2xl p-3 mt-3"
+              style={{ background: 'var(--emerald-dim)', border: '1px solid rgba(52,211,153,0.3)' }}
+            >
+              <p className="font-display" style={{ fontSize: 14, color: 'var(--emerald)', fontWeight: 500 }}>
+                ✓ {done.count > 0
+                  ? `Recalculated ${done.count} transaction${done.count === 1 ? '' : 's'}`
+                  : 'Already up to date'}
+              </p>
+              <p className="body-secondary" style={{ fontSize: 12, marginTop: 4 }}>
+                Refresh your Dashboard to see updated Net Worth.
+              </p>
+            </div>
+          )}
+
+          {!confirming && unappliedCount > 0 && (
+            <button onClick={() => setConfirming(true)} className="btn btn-primary mt-4">
+              Recalculate Balances →
+            </button>
+          )}
+
+          {confirming && (
+            <div className="flex gap-2 mt-4">
+              <button onClick={() => setConfirming(false)} className="btn btn-secondary flex-1">Cancel</button>
+              <button onClick={recalc} className="btn btn-primary flex-1">Confirm</button>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   )
 }
