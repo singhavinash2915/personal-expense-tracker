@@ -1,3 +1,16 @@
+/**
+ * Net Worth — "liquid net worth" model
+ *
+ * Loans (especially long-term home loans) are NOT subtracted from net worth,
+ * because:
+ *   - They're typically offset by a real asset (home/car) we don't track
+ *   - Subtracting a 25-year ₹40L home loan would push every middle-class
+ *     user into deep negative — demoralizing & not actionable
+ *
+ * Instead:
+ *   - Net worth = liquid assets + investments + retirement − credit-card debt
+ *   - Loans are shown separately (Dashboard tile + dedicated /loans page)
+ */
 export function calculateNetWorth(state) {
   // Assets
   const bankBalance = (state.accounts || []).reduce((s, a) => s + (a.balance || 0), 0)
@@ -8,13 +21,15 @@ export function calculateNetWorth(state) {
     .reduce((s, r) => s + (r.currentBalance || 0), 0)
   const totalAssets = bankBalance + mfValue + stockValue + retirementValue
 
-  // Liabilities
+  // Short-term liabilities (subtracted from net worth)
   const ccDebt = (state.creditCards || []).reduce((s, c) => s + (c.outstanding || 0), 0)
+  const totalLiabilities = ccDebt
+
+  // Long-term obligations (informational only — NOT subtracted)
   const loanOutstanding = (state.loans || []).reduce(
     (s, l) => s + (l.monthlyEMI || 0) * Math.max(0, (l.totalEMIs || 0) - (l.paidEMIs || 0)),
     0
   )
-  const totalLiabilities = ccDebt + loanOutstanding
 
   const netWorth = totalAssets - totalLiabilities
 
@@ -28,7 +43,7 @@ export function calculateNetWorth(state) {
       stockValue,
       retirementValue,
       ccDebt,
-      loanOutstanding,
+      loanOutstanding, // shown on Dashboard separately, not deducted
     }
   }
 }
