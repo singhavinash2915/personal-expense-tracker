@@ -27,6 +27,7 @@ const pageMeta = {
   '/forecast':      { title: 'Spend Forecast', subtitle: 'Month-end projection based on your pace.' },
   '/achievements':  { title: 'Achievements',   subtitle: 'Streaks, XP, and badges you\u2019ve earned.' },
   '/loans':         { title: 'Loans & EMI',    subtitle: 'Track loans with automatic principal/interest split.' },
+  '/retirement':    { title: 'Retirement',     subtitle: 'PPF, NPS, EPF & Sukanya — with monthly auto-contributions.' },
 }
 
 const BOTTOM_NAV_LEFT = [

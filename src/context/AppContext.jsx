@@ -32,6 +32,7 @@ const initialState = {
   onboarded:     loadFromStorage('ef_onboarded',     false),
   biometricLock: loadFromStorage('ef_biometric_lock', false),
   loans:         loadFromStorage('ef_loans',          []),
+  retirementAccounts: loadFromStorage('ef_retirement', []),
 }
 
 // ─── Account-balance helpers ───────────────────────────────────────────
@@ -376,6 +377,21 @@ function reducer(state, action) {
       return { ...state, loans: (state.loans || []).map(l => l.id === action.payload.id ? action.payload : l) }
     case 'DELETE_LOAN':
       return { ...state, loans: (state.loans || []).filter(l => l.id !== action.payload) }
+
+    // Retirement accounts (PPF, NPS, EPF, Sukanya)
+    case 'ADD_RETIREMENT':
+      return { ...state, retirementAccounts: [action.payload, ...(state.retirementAccounts || [])] }
+    case 'UPDATE_RETIREMENT':
+      return {
+        ...state,
+        retirementAccounts: (state.retirementAccounts || [])
+          .map(r => r.id === action.payload.id ? action.payload : r),
+      }
+    case 'DELETE_RETIREMENT':
+      return {
+        ...state,
+        retirementAccounts: (state.retirementAccounts || []).filter(r => r.id !== action.payload),
+      }
     case 'CLEAR_ALL_DATA':
       return {
         ...state,
@@ -457,6 +473,7 @@ export function AppProvider({ children }) {
   useEffect(() => { localStorage.setItem('ef_onboarded', JSON.stringify(state.onboarded)) }, [state.onboarded])
   useEffect(() => { localStorage.setItem('ef_biometric_lock', JSON.stringify(state.biometricLock)) }, [state.biometricLock])
   useEffect(() => { localStorage.setItem('ef_loans', JSON.stringify(state.loans || [])) }, [state.loans])
+  useEffect(() => { localStorage.setItem('ef_retirement', JSON.stringify(state.retirementAccounts || [])) }, [state.retirementAccounts])
 
   // Derived helpers
   const getCategory = (id) => state.categories.find(c => c.id === id)

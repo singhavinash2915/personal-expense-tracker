@@ -133,13 +133,15 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ── Asset tiles 2×2 ── */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
+      {/* ── Asset tiles ── */}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-3">
         {[
           { label: 'Bank', value: netWorthData.breakdown.bankBalance, icon: '🏦' },
           { label: 'Mutual Funds', value: netWorthData.breakdown.mfValue, icon: '📈' },
           { label: 'Stocks', value: netWorthData.breakdown.stockValue, icon: '📊', tone: 'positive' },
+          { label: 'Retirement', value: netWorthData.breakdown.retirementValue || 0, icon: '🏛️', tone: 'positive' },
           { label: 'CC Debt', value: netWorthData.breakdown.ccDebt, icon: '💳', tone: 'negative' },
+          { label: 'Loans', value: netWorthData.breakdown.loanOutstanding || 0, icon: '🏠', tone: 'negative' },
         ].map(({ label, value, icon, tone }) => (
           <div key={label} className="asset-tile">
             <div className="tile-label">{icon} {label}</div>

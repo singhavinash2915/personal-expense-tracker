@@ -23,6 +23,7 @@ import MonthlyDigest from './pages/MonthlyDigest'
 import Forecast from './pages/Forecast'
 import Achievements from './pages/Achievements'
 import Loans from './pages/Loans'
+import Retirement from './pages/Retirement'
 
 function AppRoutes() {
   const { state } = useApp()
@@ -63,6 +64,7 @@ function AppRoutes() {
           <Route path="forecast" element={<Forecast />} />
           <Route path="achievements" element={<Achievements />} />
           <Route path="loans" element={<Loans />} />
+          <Route path="retirement" element={<Retirement />} />
         </Route>
       </Routes>
       <PWAInstallBanner />

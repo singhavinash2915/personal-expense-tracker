@@ -2,7 +2,7 @@ import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard, Receipt, BarChart2, Wallet, CreditCard, RefreshCw,
   TrendingUp, Settings as SettingsIcon, Landmark, HeartPulse, Brain, Target,
-  Sparkles, LineChart, Trophy, Building2
+  Sparkles, LineChart, Trophy, Building2, PiggyBank
 } from 'lucide-react'
 import { useApp } from '../../context/AppContext'
 
@@ -19,6 +19,7 @@ const navItems = [
   { to: '/ai-insights',   icon: Brain,           label: 'AI Insights'   },
   { to: '/goals',         icon: Target,          label: 'Goals'         },
   { to: '/loans',         icon: Building2,       label: 'Loans & EMI'   },
+  { to: '/retirement',    icon: PiggyBank,       label: 'Retirement'    },
   { to: '/forecast',      icon: LineChart,       label: 'Forecast'      },
   { to: '/achievements',  icon: Trophy,          label: 'Achievements'  },
   { to: '/digest',        icon: Sparkles,        label: 'Monthly Wrap'  },

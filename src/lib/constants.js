@@ -22,6 +22,8 @@ export const DEFAULT_CATEGORIES = [
   { id: 'tr5',  name: 'NPS',                   icon: '🎯', color: '#06b6d4', type: 'transfer' },
   { id: 'tr6',  name: 'Gold / SGBs',           icon: '🪙', color: '#06b6d4', type: 'transfer' },
   { id: 'tr7',  name: 'ELSS',                  icon: '💹', color: '#06b6d4', type: 'transfer' },
+  { id: 'tr18', name: 'EPF',                   icon: '🏛️', color: '#06b6d4', type: 'transfer' },
+  { id: 'tr19', name: 'Sukanya Samriddhi',     icon: '👧', color: '#06b6d4', type: 'transfer' },
   // Loan EMIs
   { id: 'tr8',  name: 'Home Loan EMI',         icon: '🏠', color: '#818cf8', type: 'transfer' },
   { id: 'tr9',  name: 'Car Loan EMI',          icon: '🚗', color: '#818cf8', type: 'transfer' },
