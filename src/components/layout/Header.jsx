@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useLocation } from 'react-router-dom'
-import { Bell, Plus, Search, ScanLine, Mic, Menu } from 'lucide-react'
+import { Bell, HelpCircle, Settings as SettingsIcon, MoreVertical, Menu, Mic, ScanLine, Search } from 'lucide-react'
 import TransactionModal from '../ui/TransactionModal'
 import ReceiptScanner from '../ui/ReceiptScanner'
 import PrivacyToggle from '../ui/PrivacyToggle'
@@ -8,16 +8,8 @@ import NotificationPanel from '../ui/NotificationPanel'
 import { generateNotifications } from '../../lib/notifications'
 import { useApp } from '../../context/AppContext'
 
-function greetingForTime() {
-  const h = new Date().getHours()
-  if (h < 12) return 'Good morning'
-  if (h < 17) return 'Good afternoon'
-  if (h < 21) return 'Good evening'
-  return 'Hello'
-}
-
 export default function Header({ title, subtitle, onMenuOpen, onAddTx, onScan, onVoice }) {
-  const [showModal, setShowModal] = useState(false)
+  const [showAddModal, setShowAddModal] = useState(false)
   const [showScanner, setShowScanner] = useState(false)
   const [notifOpen, setNotifOpen] = useState(false)
 
@@ -30,88 +22,78 @@ export default function Header({ title, subtitle, onMenuOpen, onAddTx, onScan, o
 
   function handleAdd() {
     if (onAddTx) onAddTx()
-    else setShowModal(true)
+    else setShowAddModal(true)
   }
 
   return (
     <>
+      {/* Top app bar */}
       <header
-        className="sticky top-0 z-10 px-3 md:px-8 py-2 md:py-3 flex items-center justify-between gap-2"
+        className="sticky top-0 z-10 px-4 md:px-8 py-3 flex items-center justify-between gap-3"
         style={{
-          background: 'rgba(3,17,13,0.7)',
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
-          borderBottom: '1px solid var(--border-subtle)',
+          background: 'var(--bg-base)',
         }}
       >
-        {/* Left: hamburger (mobile) + title */}
-        <div className="flex items-center gap-3 min-w-0 flex-1">
+        {/* Left: hamburger + brand */}
+        <div className="flex items-center gap-3 flex-1 min-w-0">
           <button
             onClick={onMenuOpen}
-            className="md:hidden flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center active:scale-95 transition-transform"
-            style={{
-              background: 'var(--bg-elevated)',
-              border: '1px solid var(--border-default)',
-              color: 'var(--text-secondary)',
-            }}
+            className="md:hidden flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center active:scale-95 transition-transform"
+            style={{ color: 'var(--text-primary)' }}
             aria-label="Open menu"
           >
-            <Menu className="w-4 h-4" />
+            <Menu className="w-5 h-5" strokeWidth={2.2} />
           </button>
 
-          {/* Desktop title */}
-          <div className="min-w-0 hidden md:block">
-            <h2 className="heading" style={{ fontSize: 22 }}>{title}</h2>
-            {subtitle && <p className="body-secondary" style={{ marginTop: 2, fontSize: 12 }}>{subtitle}</p>}
+          {/* Brand mark — small, just on mobile */}
+          <div className="md:hidden flex items-center gap-2 flex-shrink-0">
+            <div
+              className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+              style={{
+                background: 'var(--primary)',
+                color: 'white',
+                fontWeight: 800,
+                fontSize: 14,
+              }}
+            >
+              ₹
+            </div>
+            <span style={{ color: 'var(--text-primary)', fontWeight: 800, fontSize: 17, letterSpacing: '-0.02em' }}>
+              ExpenseFlow
+            </span>
           </div>
 
-          {/* Mobile: compact brand */}
-          <div className="md:hidden flex-shrink-0">
-            <span className="font-display" style={{ fontSize: 16, fontWeight: 500, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
-              Expense<em style={{ fontStyle: 'italic', color: 'var(--gold)', fontWeight: 400 }}>Flow</em>
-            </span>
+          {/* Desktop: page title */}
+          <div className="hidden md:block min-w-0">
+            <h2 className="heading" style={{ fontSize: 24 }}>{title}</h2>
+            {subtitle && (
+              <p className="body-secondary" style={{ marginTop: 2, fontSize: 12 }}>
+                {subtitle}
+              </p>
+            )}
           </div>
         </div>
 
-        {/* Right actions */}
-        <div className="flex items-center gap-2 flex-shrink-0">
-          {/* Mobile: Voice + Scan */}
-          <button
-            className="md:hidden w-9 h-9 rounded-xl flex items-center justify-center"
-            onClick={onVoice}
-            aria-label="Voice add"
-            style={{ background: 'var(--gold-dim)', color: 'var(--gold)', border: '1px solid rgba(251,191,36,0.3)' }}
-          >
-            <Mic className="w-4 h-4" />
-          </button>
-          <button
-            className="md:hidden w-9 h-9 rounded-xl flex items-center justify-center"
-            onClick={() => { if (onScan) onScan(); else setShowScanner(true); }}
-            aria-label="Scan receipt"
-            style={{ background: 'var(--bg-elevated)', color: 'var(--text-secondary)', border: '1px solid var(--border-default)' }}
-          >
-            <ScanLine className="w-4 h-4" />
-          </button>
-
+        {/* Right: actions */}
+        <div className="flex items-center gap-1 flex-shrink-0">
+          {/* Mobile actions */}
+          <IconBtn onClick={onVoice} ariaLabel="Voice add">
+            <Mic className="w-5 h-5" />
+          </IconBtn>
+          <IconBtn onClick={() => { if (onScan) onScan(); else setShowScanner(true) }} ariaLabel="Scan receipt">
+            <ScanLine className="w-5 h-5" />
+          </IconBtn>
           <PrivacyToggle />
-
-          {/* Bell */}
           <div className="relative">
-            <button
-              onClick={() => setNotifOpen(n => !n)}
-              className="w-9 h-9 rounded-xl flex items-center justify-center relative"
-              style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', color: 'var(--text-secondary)' }}
-            >
-              <Bell className="w-4 h-4" />
+            <IconBtn onClick={() => setNotifOpen(n => !n)} ariaLabel="Notifications">
+              <Bell className="w-5 h-5" />
               {notifications.length > 0 && (
                 <span
-                  className="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[9px] flex items-center justify-center"
-                  style={{ background: 'var(--gold)', color: 'var(--bg-base)', fontFamily: 'var(--font-mono)', fontWeight: 700 }}
-                >
-                  {notifications.length > 9 ? '9+' : notifications.length}
-                </span>
+                  className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full"
+                  style={{ background: 'var(--primary)' }}
+                />
               )}
-            </button>
+            </IconBtn>
             <NotificationPanel
               open={notifOpen}
               onClose={() => setNotifOpen(false)}
@@ -119,47 +101,64 @@ export default function Header({ title, subtitle, onMenuOpen, onAddTx, onScan, o
             />
           </div>
 
-          {/* Desktop actions */}
-          <button onClick={onVoice} className="hidden md:flex btn btn-ghost" style={{ padding: '8px 14px' }}>
-            <Mic className="w-4 h-4" /> Quick Add
-          </button>
-          <button onClick={() => setShowScanner(true)} className="hidden md:flex btn btn-secondary" style={{ padding: '8px 14px' }}>
-            <ScanLine className="w-4 h-4" /> Scan
-          </button>
-          <button onClick={handleAdd} className="hidden md:flex btn btn-primary" style={{ padding: '8px 14px' }}>
-            <Plus className="w-4 h-4" /> Add
+          {/* Desktop-only quick actions */}
+          <button onClick={handleAdd} className="hidden md:flex btn btn-primary" style={{ padding: '10px 18px' }}>
+            + Add
           </button>
         </div>
       </header>
 
-      {/* Mobile page title / greeting */}
-      <div className="md:hidden px-4 pt-3 pb-2">
+      {/* Mobile page title (below header) */}
+      <div className="md:hidden px-4 pt-2 pb-3">
         {isDashboard ? (
           <>
-            <div className="label-mono">— {greetingForTime()}</div>
             <h1
-              className="font-display"
               style={{
-                fontSize: 26,
-                fontWeight: 400,
-                letterSpacing: '-0.02em',
-                marginTop: 4,
+                fontSize: 30,
+                fontWeight: 800,
+                letterSpacing: '-0.025em',
                 color: 'var(--text-primary)',
                 lineHeight: 1.1,
               }}
             >
-              {firstName ? <>Hello, <em style={{ fontStyle: 'italic', color: 'var(--gold)', fontWeight: 400 }}>{firstName}.</em></> : <em style={{ fontStyle: 'italic', color: 'var(--gold)' }}>Welcome.</em>}
+              {firstName ? <>Hi, {firstName}!</> : 'Dashboard'}
             </h1>
+            {subtitle && (
+              <p className="body-secondary" style={{ marginTop: 4 }}>
+                {subtitle}
+              </p>
+            )}
           </>
         ) : (
-          <h2 className="font-display" style={{ fontSize: 20, fontWeight: 500, letterSpacing: '-0.01em', color: 'var(--text-primary)' }}>
+          <h1
+            style={{
+              fontSize: 28,
+              fontWeight: 800,
+              letterSpacing: '-0.025em',
+              color: 'var(--text-primary)',
+              lineHeight: 1.1,
+            }}
+          >
             {title}
-          </h2>
+          </h1>
         )}
       </div>
 
-      {showModal && <TransactionModal onClose={() => setShowModal(false)} />}
+      {showAddModal && <TransactionModal onClose={() => setShowAddModal(false)} />}
       {showScanner && <ReceiptScanner onClose={() => setShowScanner(false)} />}
     </>
+  )
+}
+
+function IconBtn({ children, onClick, ariaLabel }) {
+  return (
+    <button
+      onClick={onClick}
+      aria-label={ariaLabel}
+      className="w-10 h-10 rounded-full flex items-center justify-center active:scale-95 transition-transform"
+      style={{ color: 'var(--text-primary)' }}
+    >
+      {children}
+    </button>
   )
 }

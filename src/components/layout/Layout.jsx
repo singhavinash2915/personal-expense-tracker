@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Outlet, useLocation, NavLink } from 'react-router-dom'
-import { LayoutDashboard, Receipt, Wallet, MoreHorizontal, Plus } from 'lucide-react'
+import { LayoutDashboard, Receipt, Wallet, Landmark, MoreHorizontal, Plus } from 'lucide-react'
 import Sidebar from './Sidebar'
 import Header from './Header'
 import TransactionModal from '../ui/TransactionModal'
@@ -12,30 +12,29 @@ import { useApp } from '../../context/AppContext'
 const pageMeta = {
   '/':              { title: 'Dashboard',     subtitle: '' },
   '/transactions':  { title: 'Transactions',  subtitle: 'View and manage all your transactions.' },
-  '/accounts':      { title: 'Accounts',      subtitle: 'Manage your bank accounts, wallets, and cash.' },
-  '/analytics':     { title: 'Analytics',     subtitle: 'Insights and trends about your spending habits.' },
-  '/budgets':       { title: 'Budgets',        subtitle: 'Set and track your monthly spending limits.' },
-  '/credit':        { title: 'Credit Cards',   subtitle: 'Manage your credit cards and outstanding balances.' },
-  '/subscriptions': { title: 'Subscriptions', subtitle: 'Track your recurring monthly subscriptions.' },
-  '/investments':   { title: 'Investments',   subtitle: 'Track your mutual funds and equity portfolio.' },
-  '/settings':      { title: 'Settings',      subtitle: 'Customize your experience and manage data.' },
-  '/privacy':       { title: 'Privacy Policy', subtitle: 'How we handle your data.' },
-  '/health':        { title: 'Health Score',   subtitle: 'How financially healthy are you?' },
-  '/ai-insights':   { title: 'AI Insights',    subtitle: 'Smart analysis of your financial patterns.' },
-  '/goals':         { title: 'Savings Goals',  subtitle: 'Track progress towards your financial goals.' },
-  '/digest':        { title: 'Monthly Wrap',   subtitle: 'Your shareable monthly financial digest.' },
-  '/forecast':      { title: 'Spend Forecast', subtitle: 'Month-end projection based on your pace.' },
-  '/achievements':  { title: 'Achievements',   subtitle: 'Streaks, XP, and badges you\u2019ve earned.' },
-  '/loans':         { title: 'Loans & EMI',    subtitle: 'Track loans with automatic principal/interest split.' },
-  '/retirement':    { title: 'Retirement',     subtitle: 'PPF, NPS, EPF & Sukanya — with monthly auto-contributions.' },
+  '/accounts':      { title: 'Accounts',      subtitle: 'Manage bank, credit cards, wallets.' },
+  '/analytics':     { title: 'Analytics',     subtitle: 'Insights and trends about your spending.' },
+  '/budgets':       { title: 'Budgets',       subtitle: 'Set and track your monthly limits.' },
+  '/credit':        { title: 'Credit Cards',  subtitle: 'Manage your credit cards.' },
+  '/subscriptions': { title: 'Subscriptions', subtitle: 'Track recurring monthly subscriptions.' },
+  '/investments':   { title: 'Investments',   subtitle: 'Mutual funds & equity portfolio.' },
+  '/settings':      { title: 'Settings',      subtitle: 'Customize and manage data.' },
+  '/privacy':       { title: 'Privacy Policy',subtitle: 'How we handle your data.' },
+  '/health':        { title: 'Health Score',  subtitle: 'How financially healthy are you?' },
+  '/ai-insights':   { title: 'AI Insights',   subtitle: 'Smart analysis of your patterns.' },
+  '/goals':         { title: 'Goals',         subtitle: 'Track progress to your goals.' },
+  '/digest':        { title: 'Monthly Wrap',  subtitle: 'Shareable monthly digest.' },
+  '/forecast':      { title: 'Forecast',      subtitle: 'Month-end projection.' },
+  '/achievements':  { title: 'Achievements',  subtitle: 'Streaks, XP, badges.' },
+  '/loans':         { title: 'Loans & EMI',   subtitle: 'Track loans & EMIs.' },
+  '/retirement':    { title: 'Retirement',    subtitle: 'PPF, NPS, EPF, Sukanya.' },
 }
 
-const BOTTOM_NAV_LEFT = [
-  { to: '/',             icon: LayoutDashboard, label: 'Home' },
-  { to: '/transactions', icon: Receipt,         label: 'Txns' },
-]
-const BOTTOM_NAV_RIGHT = [
-  { to: '/budgets',      icon: Wallet,          label: 'Budget' },
+const NAV_ITEMS = [
+  { to: '/',             icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/transactions', icon: Receipt,         label: 'Activity'  },
+  { to: '/budgets',      icon: Wallet,          label: 'Budget'    },
+  { to: '/accounts',     icon: Landmark,        label: 'Accounts'  },
 ]
 
 export default function Layout() {
@@ -48,13 +47,13 @@ export default function Layout() {
   const [showVoice, setShowVoice] = useState(false)
 
   const subtitle = pathname === '/'
-    ? `Welcome back${state.userName ? ', ' + state.userName : ''}. Here's your financial overview.`
+    ? `Here's your financial overview.`
     : meta.subtitle
 
   useNAVScheduler()
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen" style={{ background: 'var(--bg-base)' }}>
       {/* Desktop sidebar */}
       <div className="hidden md:block">
         <Sidebar />
@@ -65,19 +64,23 @@ export default function Layout() {
         <div className="fixed inset-0 z-40 md:hidden">
           <div
             className="absolute inset-0"
-            style={{ background: 'rgba(3,17,13,0.7)', backdropFilter: 'blur(8px)' }}
+            style={{ background: 'rgba(15,26,46,0.5)', backdropFilter: 'blur(4px)' }}
             onClick={() => setDrawerOpen(false)}
           />
-          <div className="absolute left-0 top-0 h-full w-64 z-50"
-            style={{ animation: 'slideInLeft 0.22s ease' }}>
+          <div
+            className="absolute left-0 top-0 h-full w-64 z-50"
+            style={{ animation: 'slideInLeft 0.22s ease' }}
+          >
             <Sidebar onClose={() => setDrawerOpen(false)} />
           </div>
         </div>
       )}
 
-      {/* Main content */}
-      <main className="flex-1 md:ml-64 flex flex-col min-h-screen overflow-x-hidden"
-        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 92px)' }}>
+      {/* Main */}
+      <main
+        className="flex-1 md:ml-64 flex flex-col min-h-screen overflow-x-hidden"
+        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 96px)' }}
+      >
         <Header
           title={meta.title}
           subtitle={subtitle}
@@ -86,67 +89,53 @@ export default function Layout() {
           onScan={() => setShowScanner(true)}
           onVoice={() => setShowVoice(true)}
         />
-        <div className="flex-1 px-4 pt-3 pb-4 md:p-8 page-enter">
+        <div className="flex-1 px-4 pb-6 md:px-8 md:py-6 page-enter">
           <Outlet />
         </div>
       </main>
 
-      {/* Mobile: Floating bottom nav with FAB (per design system) */}
-      <div
-        className="fixed left-0 right-0 z-30 md:hidden flex justify-center"
-        style={{ bottom: 'calc(env(safe-area-inset-bottom) + 14px)', paddingLeft: 14, paddingRight: 14 }}
+      {/* Mobile bottom nav — clean, no FAB inside */}
+      <nav
+        className="fixed left-0 right-0 z-30 md:hidden bnav"
+        style={{
+          bottom: 0,
+          paddingBottom: 'env(safe-area-inset-bottom)',
+        }}
       >
-        <div className="bnav w-full" style={{ maxWidth: 460, position: 'relative' }}>
-          {/* Left items */}
-          {BOTTOM_NAV_LEFT.map(({ to, icon: Icon, label }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={to === '/'}
-              className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
-              style={{ flex: 1 }}
-            >
-              <Icon className="w-5 h-5" />
-              <span>{label}</span>
-            </NavLink>
-          ))}
-
-          {/* FAB — overflows 30px above */}
-          <div style={{ flex: '0 0 auto', transform: 'translateY(-22px)' }}>
-            <button
-              onClick={() => setShowAddTx(true)}
-              className="fab"
-              aria-label="Add transaction"
-            >
-              <Plus className="w-6 h-6" strokeWidth={2.5} />
-            </button>
-          </div>
-
-          {/* Right items */}
-          {BOTTOM_NAV_RIGHT.map(({ to, icon: Icon, label }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={to === '/'}
-              className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
-              style={{ flex: 1 }}
-            >
-              <Icon className="w-5 h-5" />
-              <span>{label}</span>
-            </NavLink>
-          ))}
-
-          {/* More */}
-          <button
-            onClick={() => setDrawerOpen(true)}
-            className="nav-item"
-            style={{ flex: 1, background: 'transparent', border: 'none', cursor: 'pointer' }}
+        {NAV_ITEMS.map(({ to, icon: Icon, label }) => (
+          <NavLink
+            key={to}
+            to={to}
+            end={to === '/'}
+            className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
           >
-            <MoreHorizontal className="w-5 h-5" />
-            <span>More</span>
-          </button>
-        </div>
-      </div>
+            <Icon className="w-5 h-5" strokeWidth={2.2} />
+            <span>{label}</span>
+          </NavLink>
+        ))}
+        <button
+          onClick={() => setDrawerOpen(true)}
+          className="nav-item"
+          aria-label="More menu"
+        >
+          <MoreHorizontal className="w-5 h-5" strokeWidth={2.2} />
+          <span>More</span>
+        </button>
+      </nav>
+
+      {/* Floating FAB — bottom-right (separate from nav) */}
+      <button
+        onClick={() => setShowAddTx(true)}
+        className="fab fixed md:hidden z-40"
+        style={{
+          right: 16,
+          bottom: 'calc(env(safe-area-inset-bottom) + 80px)',
+        }}
+        aria-label="Add transaction"
+      >
+        <Plus className="w-5 h-5" strokeWidth={2.5} />
+        Add
+      </button>
 
       {showAddTx && <TransactionModal onClose={() => setShowAddTx(false)} />}
       {showScanner && <ReceiptScanner onClose={() => setShowScanner(false)} />}

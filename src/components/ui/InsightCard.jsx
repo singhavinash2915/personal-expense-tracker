@@ -1,25 +1,19 @@
 /**
- * InsightCard — Glassmorphic emerald/gold insight per design system.
- *
- * Props:
- *   insight: { id, type, title, message, icon, color, priority }
- *   type: 'warning' | 'success' | 'tip' | 'info'
+ * InsightCard — Money Split style: clean card with colored left bar.
  */
 export default function InsightCard({ insight }) {
   const { title, message, icon, type, color } = insight
 
-  // Determine left border color based on type or legacy color class
-  let accentClass = ''
-  if (type === 'success' || color === 'text-emerald-400') accentClass = 'positive'
-  else if (type === 'warning' || color === 'text-rose-400') accentClass = 'warning'
-  // default = gold (from CSS)
+  let toneClass = ''
+  if (type === 'success' || color === 'text-emerald-400') toneClass = 'positive'
+  else if (type === 'warning' || color === 'text-rose-400') toneClass = 'warning'
 
   return (
-    <div className={`insight ${accentClass}`} style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+    <div className={`insight ${toneClass}`} style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
       {icon && (
         <span
           style={{
-            fontSize: 22,
+            fontSize: 24,
             lineHeight: 1,
             flexShrink: 0,
             marginTop: 2,
@@ -30,7 +24,6 @@ export default function InsightCard({ insight }) {
           {icon}
         </span>
       )}
-
       <div style={{ minWidth: 0, flex: 1 }}>
         <h4>{title}</h4>
         <p>{message}</p>

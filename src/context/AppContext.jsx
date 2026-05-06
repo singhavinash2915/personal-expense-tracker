@@ -25,7 +25,7 @@ const initialState = {
   accounts:      loadFromStorage('ef_accounts',      SAMPLE_ACCOUNTS),
   savingsGoals:  loadFromStorage('ef_savings_goals', []),
   splits:        loadFromStorage('ef_splits',        []),
-  theme:         loadFromStorage('ef_theme',         'dark'),
+  theme:         loadFromStorage('ef_theme',         'light'),
   currency:      loadFromStorage('ef_currency',      'INR'),
   privacyMode:   false,
   userName:      loadFromStorage('ef_user_name',     ''),
@@ -467,7 +467,9 @@ export function AppProvider({ children }) {
   useEffect(() => { localStorage.setItem('ef_savings_goals', JSON.stringify(state.savingsGoals)) },  [state.savingsGoals])
   useEffect(() => {
     localStorage.setItem('ef_theme', JSON.stringify(state.theme))
-    document.documentElement.classList.toggle('light', state.theme === 'light')
+    // New design is light-first. Apply 'dark' class only when explicitly dark.
+    document.documentElement.classList.toggle('dark', state.theme === 'dark')
+    document.documentElement.classList.remove('light')
   }, [state.theme])
   useEffect(() => { localStorage.setItem('ef_user_name', JSON.stringify(state.userName)) }, [state.userName])
   useEffect(() => { localStorage.setItem('ef_onboarded', JSON.stringify(state.onboarded)) }, [state.onboarded])

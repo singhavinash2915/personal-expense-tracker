@@ -18,12 +18,8 @@ export default function BiometricLock({ onUnlock }) {
       return
     }
     const result = await authenticateBiometric('Unlock ExpenseFlow to view your finances')
-    if (result.success) {
-      onUnlock()
-    } else {
-      setStatus('locked')
-      setError(result.error || 'Tap to try again')
-    }
+    if (result.success) onUnlock()
+    else { setStatus('locked'); setError(result.error || 'Tap to try again') }
   }
 
   useEffect(() => { attemptUnlock() }, [])
@@ -31,60 +27,53 @@ export default function BiometricLock({ onUnlock }) {
   return (
     <div
       className="fixed inset-0 z-[100] flex flex-col items-center justify-center"
-      style={{
-        background: 'var(--bg-base)',
-        backgroundImage:
-          'radial-gradient(900px 600px at 85% 0%, rgba(52,211,153,0.18), transparent 60%), radial-gradient(800px 600px at 0% 100%, rgba(251,191,36,0.12), transparent 60%), linear-gradient(180deg, #03110d 0%, #050a08 100%)'
-      }}
+      style={{ background: 'var(--bg-base)' }}
     >
-      <div className="relative z-10 flex flex-col items-center px-6 text-center">
-        {/* Logo mark */}
+      <div className="flex flex-col items-center px-8 text-center">
         <div
           className="w-20 h-20 mb-6 flex items-center justify-center"
           style={{
-            borderRadius: 'var(--r-2xl)',
-            background: 'var(--gradient-brand)',
-            boxShadow: 'var(--glow-gold)',
+            borderRadius: 24,
+            background: 'var(--primary)',
+            color: 'white',
+            fontWeight: 800,
+            fontSize: 38,
+            boxShadow: '0 12px 30px rgba(88,86,214,0.25)',
           }}
         >
-          <span style={{ fontFamily: 'var(--font-display)', fontWeight: 500, fontSize: 38, color: 'var(--bg-base)' }}>₹</span>
+          ₹
         </div>
 
-        <div className="label-mono" style={{ fontSize: 10 }}>— ExpenseFlow</div>
         <h1
-          className="font-display"
           style={{
             fontSize: 28,
-            fontWeight: 400,
+            fontWeight: 800,
             letterSpacing: '-0.02em',
-            marginTop: 6,
             color: 'var(--text-primary)',
           }}
         >
-          Your finances, <em style={{ fontStyle: 'italic', color: 'var(--gold)', fontWeight: 400 }}>locked.</em>
+          ExpenseFlow
         </h1>
-        <p className="body-secondary" style={{ marginTop: 8, fontSize: 13 }}>
-          Authenticate to continue
+        <p style={{ fontSize: 14, color: 'var(--text-muted)', marginTop: 8, fontWeight: 500 }}>
+          Your finances, locked safely
         </p>
 
-        {/* Biometric icon */}
         <button
           onClick={attemptUnlock}
           disabled={status === 'checking'}
           className="relative w-24 h-24 rounded-full flex items-center justify-center mt-10 mb-4 transition-transform active:scale-95 disabled:opacity-50"
           style={{
-            background: 'var(--emerald-dim)',
-            border: '1px solid var(--border-accent)',
-            boxShadow: '0 0 40px rgba(52,211,153,0.25)',
+            background: 'var(--primary-light)',
+            border: 'none',
           }}
           aria-label="Unlock with biometric"
         >
           {status === 'checking' ? (
-            <svg className="w-10 h-10 animate-spin" fill="none" viewBox="0 0 24 24" style={{ color: 'var(--emerald)' }}>
+            <svg className="w-10 h-10 animate-spin" fill="none" viewBox="0 0 24 24" style={{ color: 'var(--primary)' }}>
               <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeDasharray="30 30" />
             </svg>
           ) : (
-            <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--emerald)' }}>
+            <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--primary)' }}>
               {biometryType === 2 || biometryType === 4 ? (
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
                   d="M9 3.5H5.5A2 2 0 003.5 5.5V9M21 9V5.5A2 2 0 0019 3.5H15M15 20.5H19A2 2 0 0021 18.5V15M3.5 15V18.5A2 2 0 005.5 20.5H9M9 9v.01M15 9v.01M9 15c1.5 1 4.5 1 6 0M12 9v4l-1.5.5" />
@@ -96,13 +85,11 @@ export default function BiometricLock({ onUnlock }) {
           )}
         </button>
 
-        <p className="label-mono" style={{ fontSize: 10 }}>
+        <p style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 600 }}>
           {status === 'checking' ? 'Authenticating…' : `Tap to unlock with ${getBiometryLabel(biometryType)}`}
         </p>
         {error && (
-          <p className="body-secondary" style={{ marginTop: 8, fontSize: 12, color: 'var(--danger)' }}>
-            {error}
-          </p>
+          <p style={{ fontSize: 12, color: 'var(--danger)', marginTop: 8 }}>{error}</p>
         )}
       </div>
     </div>

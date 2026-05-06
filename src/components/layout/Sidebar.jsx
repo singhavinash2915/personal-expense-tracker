@@ -32,31 +32,42 @@ export default function Sidebar({ onClose }) {
     <aside
       className="fixed left-0 top-0 h-full w-64 z-20 flex flex-col"
       style={{
-        background: 'linear-gradient(180deg, #03110d 0%, #050a08 100%)',
+        background: 'var(--bg-surface)',
         borderRight: '1px solid var(--border-subtle)',
       }}
     >
-      {/* Decorative top-right emerald glow */}
-      <div className="absolute top-0 right-0 w-40 h-40 pointer-events-none"
-        style={{ background: 'radial-gradient(circle at top right, rgba(52,211,153,0.18), transparent 60%)' }} />
-
-      {/* Logo */}
-      <div className="relative px-4 py-4" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+      {/* Brand */}
+      <div className="px-5 py-5" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{ background: 'var(--gradient-brand)', boxShadow: 'var(--glow-gold)' }}>
-            <span style={{ color: 'var(--bg-base)', fontWeight: 700, fontSize: 18, fontFamily: 'var(--font-display)' }}>₹</span>
+          <div
+            className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+            style={{ background: 'var(--primary)', color: 'white', fontWeight: 800, fontSize: 18 }}
+          >
+            ₹
           </div>
           <div className="flex-1 min-w-0">
-            <h1 className="heading" style={{ fontSize: 18, lineHeight: 1.1 }}>
-              Expense<em style={{ fontStyle: 'italic', color: 'var(--gold)', fontWeight: 400 }}>Flow</em>
+            <h1
+              style={{
+                fontSize: 18,
+                fontWeight: 800,
+                letterSpacing: '-0.02em',
+                color: 'var(--text-primary)',
+                lineHeight: 1.1,
+              }}
+            >
+              ExpenseFlow
             </h1>
-            <p className="label-mono" style={{ fontSize: 9, marginTop: 2 }}>Personal Finance</p>
+            <p style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-light)', marginTop: 2 }}>
+              Personal Finance
+            </p>
           </div>
           {onClose && (
-            <button onClick={onClose} className="p-1.5 rounded-lg flex-shrink-0"
-              style={{ color: 'var(--text-muted)' }}>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded-lg flex-shrink-0"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
@@ -64,7 +75,7 @@ export default function Sidebar({ onClose }) {
         </div>
       </div>
 
-      {/* Navigation */}
+      {/* Nav */}
       <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
         {navItems.map(({ to, icon: Icon, label }) => (
           <NavLink
@@ -72,24 +83,19 @@ export default function Sidebar({ onClose }) {
             to={to}
             end={to === '/'}
             onClick={onClose}
-            className={({ isActive }) =>
-              `sidebar-link ${isActive ? 'active' : ''}`
-            }
             style={({ isActive }) => ({
               display: 'flex',
               alignItems: 'center',
               gap: 12,
-              padding: '10px 12px',
+              padding: '11px 14px',
               borderRadius: 'var(--r-md)',
               fontFamily: 'var(--font-body)',
-              fontSize: 13,
+              fontSize: 14,
               fontWeight: 600,
-              letterSpacing: '-0.01em',
-              color: isActive ? 'var(--gold)' : 'var(--text-muted)',
-              background: isActive ? 'var(--sidebar-nav-active)' : 'transparent',
-              borderLeft: isActive ? '2px solid var(--gold)' : '2px solid transparent',
+              color: isActive ? 'var(--primary)' : 'var(--text-secondary)',
+              background: isActive ? 'var(--primary-light)' : 'transparent',
               textDecoration: 'none',
-              transition: 'all 0.2s ease',
+              transition: 'all 0.15s ease',
             })}
           >
             <Icon className="w-4 h-4 flex-shrink-0" />
@@ -106,14 +112,12 @@ export default function Sidebar({ onClose }) {
             display: 'flex',
             alignItems: 'center',
             gap: 12,
-            padding: '10px 12px',
+            padding: '11px 14px',
             borderRadius: 'var(--r-md)',
-            fontFamily: 'var(--font-body)',
-            fontSize: 13,
+            fontSize: 14,
             fontWeight: 600,
-            color: isActive ? 'var(--gold)' : 'var(--text-muted)',
-            background: isActive ? 'var(--sidebar-nav-active)' : 'transparent',
-            borderLeft: isActive ? '2px solid var(--gold)' : '2px solid transparent',
+            color: isActive ? 'var(--primary)' : 'var(--text-secondary)',
+            background: isActive ? 'var(--primary-light)' : 'transparent',
             textDecoration: 'none',
           })}
         >
@@ -122,23 +126,22 @@ export default function Sidebar({ onClose }) {
         </NavLink>
       </nav>
 
-      {/* User */}
+      {/* User chip */}
       <div className="p-4" style={{ borderTop: '1px solid var(--border-subtle)' }}>
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm flex-shrink-0"
-            style={{
-              background: 'var(--gradient-brand)',
-              color: 'var(--bg-base)',
-              fontFamily: 'var(--font-display)',
-              fontWeight: 500,
-            }}>
+          <div
+            className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+            style={{ background: 'var(--primary)', color: 'white', fontWeight: 700, fontSize: 16 }}
+          >
             {state.userName?.[0]?.toUpperCase() || '?'}
           </div>
           <div className="min-w-0">
-            <p className="font-display" style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-primary)' }}>
+            <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>
               {state.userName || 'My Account'}
             </p>
-            <p className="label-mono" style={{ fontSize: 9, marginTop: 2 }}>Personal</p>
+            <p style={{ fontSize: 11, color: 'var(--text-light)', marginTop: 1 }}>
+              Personal
+            </p>
           </div>
         </div>
       </div>

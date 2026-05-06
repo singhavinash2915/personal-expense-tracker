@@ -1,284 +1,350 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Plus, Trash2, Edit2, X, Landmark, Upload } from 'lucide-react'
+import { Plus, Trash2, Edit2, X, Upload } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { formatINR, generateId } from '../lib/utils'
-import { privateValue } from '../lib/privacy'
-import AnimatedNumber from '../components/ui/AnimatedNumber'
+import ViewBalance from '../components/ui/ViewBalance'
 import StatementUploadModal from '../components/ui/StatementUploadModal'
 
 const ACCOUNT_TYPES = ['savings', 'current', 'salary', 'wallet', 'cash', 'fd', 'nre', 'nro']
 
-const ACCOUNT_COLORS = [
-  'from-violet-800 to-blue-900',
-  'from-red-800 to-rose-900',
-  'from-orange-800 to-amber-900',
-  'from-sky-700 to-blue-800',
-  'from-emerald-800 to-teal-900',
-  'from-indigo-800 to-purple-900',
-  'from-pink-800 to-rose-900',
-  'from-cyan-800 to-blue-900',
-]
-
 const ACCOUNT_TYPE_ICONS = {
-  savings: '🏦', current: '🏢', salary: '💼', wallet: '👛', cash: '💵', fd: '🔒', nre: '🌐', nro: '🌏'
+  savings: '🏛️', current: '🏢', salary: '💼', wallet: '👛', cash: '💵', fd: '🔒', nre: '🌐', nro: '🌏'
+}
+
+// Each account type maps to a pastel tint card
+const ACCOUNT_TYPE_TINT = {
+  savings: 'bank',
+  salary: 'bank',
+  current: 'investment',
+  fd: 'mf',
+  wallet: 'wallet',
+  cash: 'wallet',
+  nre: 'bank',
+  nro: 'bank',
 }
 
 const EMPTY_FORM = {
-  name: '', bank: '', type: 'savings', balance: '', accountNumber: '', ifsc: '', color: ACCOUNT_COLORS[0]
+  name: '', bank: '', type: 'savings', balance: '', accountNumber: '', ifsc: ''
 }
 
 export default function Accounts() {
   const { state, dispatch } = useApp()
   const accounts = state.accounts || []
-  const privacyMode = state.privacyMode
+
   const [showForm, setShowForm] = useState(false)
   const [editAcc, setEditAcc] = useState(null)
-  const [form, setForm]       = useState(EMPTY_FORM)
+  const [form, setForm] = useState(EMPTY_FORM)
   const [confirmDelete, setConfirmDelete] = useState(null)
   const [uploadAcc, setUploadAcc] = useState(null)
+  const [filter, setFilter] = useState('All')
 
-  const totalBalance  = accounts.reduce((s, a) => s + a.balance, 0)
-  const savingsTotal  = accounts.filter(a => ['savings','salary','nre','nro'].includes(a.type)).reduce((s,a) => s + a.balance, 0)
-  const currentTotal  = accounts.filter(a => a.type === 'current').reduce((s,a) => s + a.balance, 0)
-  const walletTotal   = accounts.filter(a => ['wallet','cash'].includes(a.type)).reduce((s,a) => s + a.balance, 0)
+  const totalBalance = accounts.reduce((s, a) => s + (a.balance || 0), 0)
+
+  // Filter chips
+  const types = [
+    { id: 'All',     label: 'All',      count: accounts.length },
+    { id: 'savings', label: 'Savings',  count: accounts.filter(a => ['savings','salary','nre','nro'].includes(a.type)).length },
+    { id: 'current', label: 'Current',  count: accounts.filter(a => a.type === 'current').length },
+    { id: 'wallet',  label: 'Wallet',   count: accounts.filter(a => ['wallet','cash'].includes(a.type)).length },
+    { id: 'fd',      label: 'Deposits', count: accounts.filter(a => a.type === 'fd').length },
+  ]
+
+  const filtered = accounts.filter(a => {
+    if (filter === 'All') return true
+    if (filter === 'savings') return ['savings','salary','nre','nro'].includes(a.type)
+    if (filter === 'current') return a.type === 'current'
+    if (filter === 'wallet') return ['wallet','cash'].includes(a.type)
+    if (filter === 'fd') return a.type === 'fd'
+    return true
+  })
 
   function openAdd() { setForm(EMPTY_FORM); setEditAcc(null); setShowForm(true) }
   function openEdit(acc) {
-    setForm({ ...acc, balance: String(acc.balance) })
+    setForm({ ...acc, balance: String(acc.balance || '') })
     setEditAcc(acc); setShowForm(true)
   }
 
   function handleSubmit(e) {
     e.preventDefault()
-    const payload = { ...form, balance: parseFloat(form.balance) }
+    const payload = { ...form, balance: parseFloat(form.balance) || 0 }
     if (editAcc) {
-      dispatch({ type: 'UPDATE_ACCOUNT', payload })
+      dispatch({ type: 'UPDATE_ACCOUNT', payload: { ...editAcc, ...payload } })
     } else {
       dispatch({ type: 'ADD_ACCOUNT', payload: { ...payload, id: generateId() } })
     }
     setShowForm(false)
   }
 
-  // Per-account transaction stats
-  function getAccountStats(accId) {
+  function getStats(accId) {
     const txs = state.transactions.filter(t => t.accountId === accId)
-    const income  = txs.filter(t => t.type === 'income').reduce((s,t)  => s + t.amount, 0)
-    const expense = txs.filter(t => t.type === 'expense').reduce((s,t) => s + t.amount, 0)
+    const income  = txs.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)
+    const expense = txs.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
     return { income, expense, count: txs.length }
   }
 
   return (
     <div className="space-y-5">
-      {/* Summary */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-        {[
-          { label: 'Net Worth',       value: privacyMode ? '••••••' : <AnimatedNumber value={totalBalance} formatter={formatINR} />,  icon: '💰', color: 'text-violet-300' },
-          { label: 'Savings/Salary',  value: privacyMode ? '••••••' : <AnimatedNumber value={savingsTotal} formatter={formatINR} />,  icon: '🏦', color: 'text-cyan-400'   },
-          { label: 'Current/Business',value: privacyMode ? '••••••' : <AnimatedNumber value={currentTotal} formatter={formatINR} />,  icon: '🏢', color: 'text-amber-400'  },
-          { label: 'Wallet & Cash',   value: privacyMode ? '••••••' : <AnimatedNumber value={walletTotal}  formatter={formatINR} />,  icon: '👛', color: 'text-emerald-400'},
-        ].map(({ label, value, icon, color }) => (
-          <div key={label} className="card p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-violet-500/10 flex items-center justify-center text-xl">{icon}</div>
-            <div>
-              <p className="text-xs" style={{ color: 'rgba(196,181,253,0.5)' }}>{label}</p>
-              <p className={`text-lg font-bold ${color}`}>{value}</p>
-            </div>
-          </div>
-        ))}
+      {/* Total card */}
+      <div className="card" style={{ padding: 24 }}>
+        <p className="section-title" style={{ marginBottom: 8 }}>
+          Total Balance
+        </p>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+          <span style={{ color: 'var(--primary)', fontWeight: 700, fontSize: 22 }}>₹</span>
+          <span style={{ fontSize: 32, fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>
+            {new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(totalBalance)}
+          </span>
+        </div>
+        <p className="body-secondary" style={{ marginTop: 8, fontSize: 13 }}>
+          Across {accounts.length} {accounts.length === 1 ? 'account' : 'accounts'}
+        </p>
       </div>
 
-      <div className="flex items-center justify-between">
-        <h3 className="text-base font-semibold text-white">My Accounts</h3>
-        <button onClick={openAdd} className="btn-primary flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl">
-          <Plus className="w-4 h-4" /> Add Account
-        </button>
+      {/* Filter chips */}
+      <div className="flex gap-2 overflow-x-auto" style={{ scrollbarWidth: 'none', margin: '0 -4px', padding: '0 4px 4px' }}>
+        {types.map(t => {
+          const active = filter === t.id
+          return (
+            <button
+              key={t.id}
+              onClick={() => setFilter(t.id)}
+              type="button"
+              className={`chip ${active ? 'chip-active' : ''}`}
+              style={{ flexShrink: 0 }}
+            >
+              {active && <span>✓</span>}
+              {t.label} ({t.count})
+            </button>
+          )
+        })}
       </div>
 
-      {accounts.length === 0 ? (
-        <div className="card p-16 text-center">
-          <Landmark className="w-12 h-12 mx-auto mb-3 text-violet-400 opacity-40" />
-          <p className="text-white font-semibold mb-1">No accounts added</p>
-          <p className="text-sm mb-5" style={{ color: 'rgba(196,181,253,0.5)' }}>Add your bank accounts, wallets, and cash to track your net worth</p>
-          <button onClick={openAdd} className="btn-primary px-6 py-2 rounded-xl text-sm font-semibold">Add Account</button>
+      {/* Account cards (pastel tinted) */}
+      {filtered.length === 0 ? (
+        <div className="card empty-state">
+          <div className="emoji">🏦</div>
+          <p className="message">No accounts yet.</p>
+          <p className="hint">Add a bank, wallet, or cash account to get started.</p>
+          <button onClick={openAdd} className="btn btn-primary mt-4">
+            <Plus className="w-4 h-4" /> Add Account
+          </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {accounts.map(acc => {
-            const stats = getAccountStats(acc.id)
-            const typeIcon = ACCOUNT_TYPE_ICONS[acc.type] || '🏦'
-
-            return (
-              <div key={acc.id} className="space-y-0">
-                {/* Account Card */}
-                <div className={`relative rounded-2xl rounded-b-none p-6 bg-gradient-to-br ${acc.color} shadow-lg overflow-hidden`}>
-                  <div className="absolute inset-0 opacity-10"
-                    style={{ backgroundImage: 'radial-gradient(circle at 80% 20%, white 0%, transparent 60%)' }} />
-                  <div className="flex items-start justify-between mb-4">
-                    <div>
-                      <p className="text-xs text-white/60 font-medium uppercase tracking-wider">{acc.bank}</p>
-                      <p className="text-lg font-bold text-white">{acc.name}</p>
+        <section>
+          <div className="section-header">
+            <span className="section-title">{filter === 'All' ? 'Accounts' : types.find(t => t.id === filter)?.label}</span>
+            <span className="section-count">{filtered.length} {filtered.length === 1 ? 'account' : 'accounts'}</span>
+          </div>
+          <div className="space-y-3">
+            {filtered.map(acc => {
+              const stats = getStats(acc.id)
+              const tint = ACCOUNT_TYPE_TINT[acc.type] || 'bank'
+              const icon = ACCOUNT_TYPE_ICONS[acc.type] || '🏛️'
+              return (
+                <div key={acc.id} className={`tile tile-${tint}`}>
+                  {/* Header row */}
+                  <div className="flex items-start gap-3">
+                    <div className="tile-icon">{icon}</div>
+                    <div className="flex-1 min-w-0">
+                      <p style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
+                        {acc.name}
+                      </p>
+                      <p style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-muted)', marginTop: 2 }}>
+                        {acc.bank}{acc.accountNumber ? ` · •••• ${String(acc.accountNumber).slice(-4)}` : ''}
+                      </p>
                     </div>
-                    <span className="text-2xl">{typeIcon}</span>
+                    <div className="flex gap-1 flex-shrink-0">
+                      <button onClick={() => openEdit(acc)} className="p-1.5 rounded-lg" style={{ color: 'var(--text-muted)' }}>
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+                      <button onClick={() => setConfirmDelete(acc.id)} className="p-1.5 rounded-lg" style={{ color: 'var(--danger)' }}>
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
 
-                  {acc.accountNumber && (
-                    <p className="text-sm font-mono text-white/70 mb-4 tracking-widest">
-                      •••• •••• •••• {acc.accountNumber}
+                  {/* Balance */}
+                  <div className="mt-4">
+                    <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>
+                      Available Balance
                     </p>
-                  )}
+                    <div style={{ marginTop: 8 }}>
+                      <ViewBalance value={formatINR(acc.balance || 0)} size="md" />
+                    </div>
+                  </div>
 
-                  <div className="flex items-end justify-between">
+                  {/* Stats + actions */}
+                  <div className="mt-4 grid grid-cols-3 gap-2">
                     <div>
-                      <p className="text-xs text-white/50">Available Balance</p>
-                      <p className="text-2xl font-bold text-white">{privateValue(acc.balance, privacyMode, formatINR)}</p>
+                      <p style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        Income
+                      </p>
+                      <p style={{ fontSize: 13, fontWeight: 800, color: 'var(--success)', marginTop: 2 }}>
+                        {formatINR(stats.income)}
+                      </p>
                     </div>
-                    <span className="text-xs font-medium text-white/60 bg-white/10 px-2.5 py-1 rounded-full capitalize">{acc.type}</span>
+                    <div>
+                      <p style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        Expenses
+                      </p>
+                      <p style={{ fontSize: 13, fontWeight: 800, color: 'var(--danger)', marginTop: 2 }}>
+                        {formatINR(stats.expense)}
+                      </p>
+                    </div>
+                    <div>
+                      <p style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        Txns
+                      </p>
+                      <p style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-primary)', marginTop: 2 }}>
+                        {stats.count}
+                      </p>
+                    </div>
                   </div>
-                </div>
 
-                {/* Account Details */}
-                <div className="card rounded-t-none border-t-0 p-4">
-                  <div className="grid grid-cols-3 gap-3 mb-3 text-xs">
-                    <div className="text-center p-2 rounded-lg" style={{ background: 'rgba(109,40,217,0.08)' }}>
-                      <p style={{ color: 'rgba(196,181,253,0.5)' }}>Transactions</p>
-                      <p className="font-bold text-white mt-0.5">{stats.count}</p>
-                    </div>
-                    <div className="text-center p-2 rounded-lg" style={{ background: 'rgba(5,150,105,0.08)' }}>
-                      <p style={{ color: 'rgba(196,181,253,0.5)' }}>Income</p>
-                      <p className="font-bold text-emerald-400 mt-0.5">{privateValue(stats.income, privacyMode, formatINR)}</p>
-                    </div>
-                    <div className="text-center p-2 rounded-lg" style={{ background: 'rgba(225,29,72,0.08)' }}>
-                      <p style={{ color: 'rgba(196,181,253,0.5)' }}>Expenses</p>
-                      <p className="font-bold text-rose-400 mt-0.5">{privateValue(stats.expense, privacyMode, formatINR)}</p>
-                    </div>
-                  </div>
-
-                  {acc.ifsc && (
-                    <p className="text-xs mb-3" style={{ color: 'rgba(196,181,253,0.4)' }}>
-                      IFSC: <span className="font-mono">{acc.ifsc}</span>
-                    </p>
-                  )}
-
-                  <div className="flex gap-2">
-                    <button onClick={() => setUploadAcc(acc)}
-                      className="btn-primary flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold flex-shrink-0">
-                      <Upload className="w-3 h-3" /> Upload Statement
-                    </button>
-                    <Link to="/transactions" state={{ accountId: acc.id }}
-                      className="btn-ghost flex-1 py-2 rounded-xl text-xs flex items-center justify-center gap-1.5 text-center">
-                      View
+                  {/* Actions */}
+                  <div className="mt-4 flex gap-2">
+                    <Link
+                      to="/transactions"
+                      state={{ accountId: acc.id }}
+                      className="btn btn-secondary"
+                      style={{ padding: '8px 14px', fontSize: 12, flex: 1 }}
+                    >
+                      View Transactions
                     </Link>
-                    <button onClick={() => openEdit(acc)}
-                      className="btn-ghost px-3 py-2 rounded-xl text-xs flex items-center gap-1.5">
-                      <Edit2 className="w-3 h-3" />
-                    </button>
-                    <button onClick={() => setConfirmDelete(acc.id)}
-                      className="px-3 py-2 rounded-xl text-xs flex items-center gap-1.5 bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20 transition">
-                      <Trash2 className="w-3 h-3" />
+                    <button
+                      onClick={() => setUploadAcc(acc)}
+                      className="btn btn-secondary"
+                      style={{ padding: '8px 14px', fontSize: 12 }}
+                    >
+                      <Upload className="w-3.5 h-3.5" /> Statement
                     </button>
                   </div>
                 </div>
-              </div>
-            )
-          })}
-        </div>
+              )
+            })}
+          </div>
+        </section>
       )}
 
-      {/* Form Modal */}
+      {/* Add/Edit form */}
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-end md:items-start justify-end" style={{ background: 'rgba(5,3,20,0.7)', backdropFilter: 'blur(6px)' }}>
-          <div className="relative w-full md:w-[480px] h-auto md:h-full max-h-[90vh] md:max-h-full flex flex-col animate-slide-in overflow-y-auto rounded-t-2xl md:rounded-none"
-            style={{ background: 'rgba(13,10,35,0.98)', borderLeft: '1px solid rgba(109,40,217,0.2)' }}>
-            <div className="flex items-center justify-between p-5 pb-4 md:p-8 md:pb-4">
-              <h3 className="text-xl font-semibold text-white">{editAcc ? 'Edit' : 'Add'} Account</h3>
-              <button onClick={() => setShowForm(false)} className="btn-ghost p-2 rounded-xl">
-                <X className="w-5 h-5 text-violet-300" />
+        <div
+          className="fixed inset-0 z-[80] flex items-end md:items-center md:justify-center"
+          style={{ background: 'rgba(15,26,46,0.5)', backdropFilter: 'blur(4px)' }}
+          onClick={() => setShowForm(false)}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            className="w-full md:w-[460px] max-h-[92vh] overflow-y-auto p-5 animate-sheet-up md:animate-fadeIn"
+            style={{
+              background: 'var(--bg-surface)',
+              borderRadius: '28px 28px 0 0',
+              paddingBottom: 'calc(env(safe-area-inset-bottom) + 1.5rem)',
+            }}
+          >
+            <div className="md:hidden w-10 h-1 rounded-full mx-auto mb-4" style={{ background: 'var(--border-default)' }} />
+
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="heading" style={{ fontSize: 22 }}>
+                {editAcc ? 'Edit Account' : 'Add Account'}
+              </h3>
+              <button onClick={() => setShowForm(false)} style={{ color: 'var(--text-muted)' }}>
+                <X className="w-5 h-5" />
               </button>
             </div>
-            <form onSubmit={handleSubmit} className="flex-1 px-5 pb-5 md:px-8 md:pb-8 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-violet-200 mb-1.5">Account Name</label>
-                <input type="text" required placeholder="e.g., SBI Savings" value={form.name}
-                  onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className="input-field" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-violet-200 mb-1.5">Bank / Institution</label>
-                <input type="text" required placeholder="e.g., State Bank of India" value={form.bank}
-                  onChange={e => setForm(f => ({ ...f, bank: e.target.value }))} className="input-field" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-violet-200 mb-1.5">Account Type</label>
-                <select required value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))} className="input-field">
+
+            <form onSubmit={handleSubmit} className="space-y-3">
+              <Field label="Account Name *">
+                <input required placeholder="e.g. SBI Savings" value={form.name}
+                  onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className="input" />
+              </Field>
+              <Field label="Bank *">
+                <input required placeholder="State Bank of India" value={form.bank}
+                  onChange={e => setForm(f => ({ ...f, bank: e.target.value }))} className="input" />
+              </Field>
+              <Field label="Type">
+                <select required value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))} className="input select">
                   {ACCOUNT_TYPES.map(t => (
-                    <option key={t} value={t} className="capitalize">
-                      {ACCOUNT_TYPE_ICONS[t]} {t.toUpperCase()}
+                    <option key={t} value={t}>
+                      {ACCOUNT_TYPE_ICONS[t]} {t.charAt(0).toUpperCase() + t.slice(1)}
                     </option>
                   ))}
                 </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-violet-200 mb-1.5">Current Balance (₹)</label>
-                <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-violet-300 font-semibold">₹</span>
-                  <input type="number" min="0" step="0.01" required placeholder="0" value={form.balance}
-                    onChange={e => setForm(f => ({ ...f, balance: e.target.value }))} className="input-field pl-9" />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-violet-200 mb-1.5">Last 4 Digits</label>
-                  <input type="text" placeholder="1234" maxLength={4} value={form.accountNumber || ''}
-                    onChange={e => setForm(f => ({ ...f, accountNumber: e.target.value }))} className="input-field" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-violet-200 mb-1.5">IFSC Code</label>
-                  <input type="text" placeholder="SBIN0001234" value={form.ifsc || ''}
-                    onChange={e => setForm(f => ({ ...f, ifsc: e.target.value.toUpperCase() }))} className="input-field uppercase" />
-                </div>
+              </Field>
+              <Field label="Balance (₹) *">
+                <input type="number" min="0" step="0.01" required placeholder="0" value={form.balance}
+                  onChange={e => setForm(f => ({ ...f, balance: e.target.value }))} className="input" />
+              </Field>
+              <div className="grid grid-cols-2 gap-2">
+                <Field label="Last 4 digits">
+                  <input maxLength={4} placeholder="1234" value={form.accountNumber || ''}
+                    onChange={e => setForm(f => ({ ...f, accountNumber: e.target.value }))} className="input" />
+                </Field>
+                <Field label="IFSC">
+                  <input placeholder="SBIN0001234" value={form.ifsc || ''}
+                    onChange={e => setForm(f => ({ ...f, ifsc: e.target.value.toUpperCase() }))} className="input" style={{ textTransform: 'uppercase' }} />
+                </Field>
               </div>
 
-              {/* Color Picker */}
-              <div>
-                <label className="block text-sm font-medium text-violet-200 mb-2">Card Color</label>
-                <div className="flex gap-2 flex-wrap">
-                  {ACCOUNT_COLORS.map(g => (
-                    <button key={g} type="button" onClick={() => setForm(f => ({ ...f, color: g }))}
-                      className={`w-10 h-6 rounded-lg bg-gradient-to-r ${g} transition-all ${
-                        form.color === g ? 'ring-2 ring-violet-400 ring-offset-1 ring-offset-transparent' : ''
-                      }`} />
-                  ))}
-                </div>
+              <div className="flex gap-2 pt-2">
+                <button type="button" onClick={() => setShowForm(false)} className="btn btn-secondary flex-1">Cancel</button>
+                <button type="submit" className="btn btn-primary flex-1">
+                  {editAcc ? 'Save Changes' : 'Add Account'}
+                </button>
               </div>
-
-              <button type="submit" className="btn-primary w-full py-3 rounded-xl font-semibold text-sm mt-2">
-                {editAcc ? 'Update' : 'Add'} Account
-              </button>
             </form>
           </div>
         </div>
       )}
 
-      {/* Statement Upload Modal */}
-      {uploadAcc && <StatementUploadModal account={uploadAcc} onClose={() => setUploadAcc(null)} />}
+      {/* Add account FAB-like — only when there are accounts (otherwise empty state shows it) */}
+      {filtered.length > 0 && (
+        <button onClick={openAdd} className="btn btn-primary" style={{ width: '100%', padding: 14 }}>
+          <Plus className="w-5 h-5" /> Add Account
+        </button>
+      )}
 
-      {/* Delete Confirm */}
+      {/* Delete confirm */}
       {confirmDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(5,3,20,0.8)' }}>
-          <div className="card p-6 w-80 text-center">
-            <p className="text-2xl mb-3">🗑️</p>
-            <p className="text-white font-semibold mb-1">Remove Account?</p>
-            <p className="text-sm mb-5" style={{ color: 'rgba(196,181,253,0.5)' }}>This action cannot be undone.</p>
-            <div className="flex gap-3">
-              <button onClick={() => setConfirmDelete(null)} className="btn-ghost flex-1 py-2 rounded-xl text-sm">Cancel</button>
-              <button onClick={() => { dispatch({ type: 'DELETE_ACCOUNT', payload: confirmDelete }); setConfirmDelete(null) }}
-                className="flex-1 py-2 rounded-xl text-sm font-semibold bg-rose-500/20 text-rose-300 border border-rose-500/30">
-                Remove
-              </button>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(15,26,46,0.5)', backdropFilter: 'blur(4px)' }}
+          onClick={() => setConfirmDelete(null)}
+        >
+          <div className="card p-6 w-full max-w-sm text-center" onClick={e => e.stopPropagation()}>
+            <p className="text-3xl mb-3">🗑️</p>
+            <h3 className="heading" style={{ fontSize: 18 }}>Delete account?</h3>
+            <p className="body-secondary" style={{ marginTop: 8 }}>
+              This won't delete linked transactions, but they'll lose this account reference.
+            </p>
+            <div className="flex gap-3 mt-5">
+              <button onClick={() => setConfirmDelete(null)} className="btn btn-secondary flex-1">Cancel</button>
+              <button
+                onClick={() => { dispatch({ type: 'DELETE_ACCOUNT', payload: confirmDelete }); setConfirmDelete(null) }}
+                className="btn btn-danger flex-1"
+              >Delete</button>
             </div>
           </div>
         </div>
       )}
+
+      {uploadAcc && <StatementUploadModal account={uploadAcc} onClose={() => setUploadAcc(null)} />}
+    </div>
+  )
+}
+
+function Field({ label, children }) {
+  return (
+    <div>
+      <label style={{
+        fontSize: 12, fontWeight: 700, color: 'var(--text-muted)',
+        textTransform: 'uppercase', letterSpacing: '0.05em',
+        display: 'block', marginBottom: 6,
+      }}>
+        {label}
+      </label>
+      {children}
     </div>
   )
 }

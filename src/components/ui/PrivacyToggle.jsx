@@ -6,16 +6,12 @@ export default function PrivacyToggle({ className = '' }) {
   return (
     <button
       onClick={() => dispatch({ type: 'TOGGLE_PRIVACY' })}
-      className={`w-9 h-9 rounded-xl flex items-center justify-center ${className}`}
-      style={{
-        background: state.privacyMode ? 'var(--gold-dim)' : 'var(--bg-elevated)',
-        border: `1px solid ${state.privacyMode ? 'rgba(251,191,36,0.3)' : 'var(--border-default)'}`,
-        color: state.privacyMode ? 'var(--gold)' : 'var(--text-secondary)',
-      }}
-      title={state.privacyMode ? 'Show values' : 'Hide values'}
-      aria-label="Toggle privacy"
+      className={`w-10 h-10 rounded-full flex items-center justify-center active:scale-95 transition-transform ${className}`}
+      style={{ color: 'var(--text-primary)' }}
+      title={state.privacyMode ? 'Show all values' : 'Hide all values'}
+      aria-label="Privacy toggle"
     >
-      {state.privacyMode ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+      {state.privacyMode ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
     </button>
   )
 }

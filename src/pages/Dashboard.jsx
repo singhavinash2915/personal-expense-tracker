@@ -1,62 +1,44 @@
 import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import {
-  PieChart, Pie, Cell, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
+  PieChart, Pie, Cell, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  Sankey, Layer, Rectangle
 } from 'recharts'
 import { useApp } from '../context/AppContext'
-import { formatINR, formatDate, currentMonthYear } from '../lib/utils'
-import { privateValue } from '../lib/privacy'
+import { formatINR, currentMonthYear } from '../lib/utils'
 import AnimatedNumber from '../components/ui/AnimatedNumber'
 import TransactionModal from '../components/ui/TransactionModal'
+import ViewBalance from '../components/ui/ViewBalance'
 import { calculateHealthScore } from '../lib/healthScore'
 import { calculateNetWorth } from '../lib/netWorth'
 import { generateInsights } from '../lib/insights'
 import InsightCard from '../components/ui/InsightCard'
+import { groupTransactionsByDate } from '../lib/groupByDate'
 
-// Emerald/gold chart palette — no purple or teal
-const COLORS = ['#34d399', '#fbbf24', '#059669', '#d97706', '#10b981', '#f59e0b']
+const SANKEY_COLORS = ['#5856D6', '#A5A4F7', '#FBA74F', '#10B981', '#3B82F6', '#EC4899', '#8B5CF6', '#F59E0B']
 
-const CustomTooltip = ({ active, payload, label }) => {
-  if (!active || !payload?.length) return null
-  return (
-    <div
-      className="glass"
-      style={{
-        padding: '10px 14px',
-        borderRadius: 'var(--r-md)',
-        border: '1px solid var(--border-accent)',
-      }}
-    >
-      <p className="label-mono" style={{ fontSize: 10 }}>— {label}</p>
-      {payload.map((p, i) => (
-        <p key={i} style={{ color: p.color, fontFamily: 'var(--font-display)', fontSize: 14, marginTop: 4 }}>
-          {p.name}: {formatINR(p.value)}
-        </p>
-      ))}
-    </div>
-  )
+function shortINR(v) {
+  const n = Math.abs(v)
+  if (n >= 10000000) return `${v < 0 ? '−' : ''}₹${(n/10000000).toFixed(1)}Cr`
+  if (n >= 100000)   return `${v < 0 ? '−' : ''}₹${(n/100000).toFixed(1)}L`
+  if (n >= 1000)     return `${v < 0 ? '−' : ''}₹${(n/1000).toFixed(1)}k`
+  return `${v < 0 ? '−' : ''}₹${n}`
 }
 
-function formatShortINR(v) {
-  if (Math.abs(v) >= 10000000) return `₹${(v/10000000).toFixed(1)}Cr`
-  if (Math.abs(v) >= 100000)  return `₹${(v/100000).toFixed(1)}L`
-  if (Math.abs(v) >= 1000)    return `₹${(v/1000).toFixed(1)}k`
-  return `₹${v}`
-}
-
-function formatDateEditorial(dateStr) {
+function formatDayMonth(dateStr) {
   const d = new Date(dateStr)
-  return `${String(d.getDate()).padStart(2, '0')} · ${d.toLocaleString('en', { month: 'short' }).toUpperCase()} · ${String(d.getFullYear()).slice(2)}`
+  return `${String(d.getDate()).padStart(2, '0')} ${d.toLocaleString('en', { month: 'short' })}`
 }
 
 export default function Dashboard() {
   const { state, getCategory, getMonthlyStats } = useApp()
-  const privacyMode = state.privacyMode
   const [editTx, setEditTx] = useState(null)
+  const [filterTab, setFilterTab] = useState('all') // all | bank | cards | invest
 
   const month = currentMonthYear()
   const { income, expenses, balance } = getMonthlyStats(month)
 
+  // Last month for trend
   const prevDate = new Date(); prevDate.setDate(1); prevDate.setMonth(prevDate.getMonth() - 1)
   const prevMonth = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}`
   const { income: prevIncome, expenses: prevExpenses } = getMonthlyStats(prevMonth)
@@ -65,11 +47,13 @@ export default function Dashboard() {
   const healthScore = useMemo(() => calculateHealthScore(state), [state])
   const insights = useMemo(() => generateInsights(state), [state])
 
-  // Delta vs last month
-  const monthDelta = prevExpenses > 0 && prevIncome > 0
-    ? (((balance - (prevIncome - prevExpenses)) / Math.abs(prevIncome - prevExpenses)) * 100)
-    : 0
+  // Trend
+  const prevNet = prevIncome - prevExpenses
+  const curNet = income - expenses
+  const trendPct = prevNet > 0 ? ((curNet - prevNet) / Math.abs(prevNet) * 100) : 0
+  const trendUp = trendPct >= 0
 
+  // 6-month flow
   const monthlyData = useMemo(() => {
     const result = []
     for (let i = 5; i >= 0; i--) {
@@ -86,7 +70,7 @@ export default function Dashboard() {
     return result
   }, [state.transactions])
 
-  // Category pie
+  // Category spend (this month)
   const categorySpend = {}
   state.transactions
     .filter(t => t.type === 'expense' && t.date.startsWith(month))
@@ -95,185 +79,294 @@ export default function Dashboard() {
     .map(([id, value]) => ({ name: getCategory(id)?.name || 'Other', value }))
     .sort((a, b) => b.value - a.value).slice(0, 6)
 
-  const recent = [...state.transactions].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 6)
+  // Recent activity — date grouped
+  const recent = [...state.transactions]
+    .sort((a, b) => new Date(b.date) - new Date(a.date))
+    .slice(0, 12)
+  const recentGrouped = useMemo(() => groupTransactionsByDate(recent), [recent])
 
-  // Health ring
-  const ringProgress = healthScore.total / 100
+  // Asset tiles (filterable)
+  const allAssetTiles = useMemo(() => {
+    const tiles = []
+    // Bank accounts
+    for (const a of (state.accounts || [])) {
+      tiles.push({
+        kind: 'bank',
+        id: a.id,
+        title: a.bank || a.name,
+        sub: a.accountNumber ? `•••• ${String(a.accountNumber).slice(-4)}` : a.name,
+        icon: '🏛️',
+        value: a.balance || 0,
+        labelText: 'Available Balance',
+      })
+    }
+    // Credit cards
+    for (const c of (state.creditCards || [])) {
+      tiles.push({
+        kind: 'creditcard',
+        id: c.id,
+        title: c.name,
+        sub: c.last4 ? `•••• ${c.last4}` : '',
+        icon: '💳',
+        value: c.outstanding || 0,
+        labelText: 'Total Outstanding',
+        statusLabel: (c.outstanding || 0) === 0 ? '✓ All Paid' : null,
+      })
+    }
+    // Mutual funds (combined)
+    const mfTotal = (state.mutualFunds || []).reduce((s, m) => s + (m.units * m.currentNav), 0)
+    if (mfTotal > 0) {
+      tiles.push({
+        kind: 'mf',
+        id: 'mf-all',
+        title: 'Mutual Funds',
+        sub: `${(state.mutualFunds || []).length} schemes`,
+        icon: '📊',
+        value: mfTotal,
+        labelText: 'Current Value',
+        link: '/investments',
+      })
+    }
+    // Stocks
+    const stockTotal = (state.stocks || []).reduce((s, st) => s + (st.shares * st.currentPrice), 0)
+    if (stockTotal > 0) {
+      tiles.push({
+        kind: 'stocks',
+        id: 'stocks-all',
+        title: 'Stocks',
+        sub: `${(state.stocks || []).length} holdings`,
+        icon: '📈',
+        value: stockTotal,
+        labelText: 'Market Value',
+        link: '/investments',
+      })
+    }
+    // Retirement
+    const retireTotal = (state.retirementAccounts || []).filter(r => r.active !== false).reduce((s, r) => s + (r.currentBalance || 0), 0)
+    if (retireTotal > 0) {
+      tiles.push({
+        kind: 'retirement',
+        id: 'retire-all',
+        title: 'Retirement',
+        sub: `${(state.retirementAccounts || []).length} accounts`,
+        icon: '🏦',
+        value: retireTotal,
+        labelText: 'Corpus',
+        link: '/retirement',
+      })
+    }
+    return tiles
+  }, [state])
+
+  const filteredTiles = useMemo(() => {
+    if (filterTab === 'all') return allAssetTiles
+    if (filterTab === 'bank') return allAssetTiles.filter(t => t.kind === 'bank')
+    if (filterTab === 'cards') return allAssetTiles.filter(t => t.kind === 'creditcard')
+    if (filterTab === 'invest') return allAssetTiles.filter(t => ['mf','stocks','retirement'].includes(t.kind))
+    return allAssetTiles
+  }, [allAssetTiles, filterTab])
+
+  // Filter chip counts
+  const counts = {
+    all:    allAssetTiles.length,
+    bank:   allAssetTiles.filter(t => t.kind === 'bank').length,
+    cards:  allAssetTiles.filter(t => t.kind === 'creditcard').length,
+    invest: allAssetTiles.filter(t => ['mf','stocks','retirement'].includes(t.kind)).length,
+  }
+
+  // Health ring as conic gradient
   const ringStyle = {
-    background: `conic-gradient(var(--gold) 0% ${ringProgress * 100}%, rgba(255,255,255,0.08) ${ringProgress * 100}% 100%)`,
+    background: `conic-gradient(var(--primary) 0% ${healthScore.total}%, var(--primary-light) ${healthScore.total}% 100%)`,
   }
 
   return (
     <div className="space-y-5 overflow-x-hidden">
-      {/* ── Hero: Net Worth ── */}
-      <div className="hero-card">
-        <div className="flex items-start justify-between relative z-10">
-          <div className="min-w-0 flex-1">
-            <div className="label-mono">— Total Net Worth</div>
-            <p className="amount-hero truncate" style={{ marginTop: 8 }}>
-              {privacyMode ? '••••••' : (
-                <>
-                  <span className="rupee">₹</span>
-                  <AnimatedNumber value={netWorthData.netWorth} formatter={v => new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(v)} />
-                </>
-              )}
-            </p>
+      {/* ── HERO: Net Worth ────────────────────────── */}
+      <div
+        className="card"
+        style={{
+          padding: '24px',
+          borderRadius: 'var(--r-2xl)',
+          background: 'var(--bg-surface)',
+        }}
+      >
+        <div className="flex items-start justify-between">
+          <div>
+            <div className="section-title" style={{ marginBottom: 8 }}>
+              Total Net Worth
+            </div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+              <span style={{ color: 'var(--primary)', fontWeight: 700, fontSize: 22 }}>₹</span>
+              <span
+                style={{
+                  fontSize: 36,
+                  fontWeight: 800,
+                  letterSpacing: '-0.025em',
+                  color: 'var(--text-primary)',
+                  lineHeight: 1.05,
+                }}
+              >
+                <AnimatedNumber
+                  value={netWorthData.netWorth}
+                  formatter={v => new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(v)}
+                />
+              </span>
+            </div>
+            <div style={{ marginTop: 10 }}>
+              <span className={trendUp ? 'chip-success' : 'chip-danger'} style={{ padding: '4px 10px', fontSize: 11 }}>
+                {trendUp ? '↑' : '↓'} {Math.abs(trendPct).toFixed(1)}% this month
+              </span>
+            </div>
           </div>
-          <Link to="/health" className="ring flex-shrink-0" style={ringStyle}>
-            <span style={{ color: 'var(--gold)' }}>{healthScore.total}</span>
+          {/* Health ring */}
+          <Link to="/health" className="flex-shrink-0">
+            <div className="ring" style={ringStyle}>
+              <span>{healthScore.total}</span>
+            </div>
           </Link>
-        </div>
-        <div className="flex items-center justify-between mt-5 relative z-10" style={{ gap: 12, flexWrap: 'wrap' }}>
-          <span className={`chip ${monthDelta >= 0 ? 'chip-success' : 'chip-danger'}`}>
-            {monthDelta >= 0 ? '↑' : '↓'} {Math.abs(monthDelta).toFixed(1)}% this month
-          </span>
-          <span className="label-mono" style={{ fontSize: 10 }}>
-            {formatDateEditorial(new Date().toISOString())}
-          </span>
         </div>
       </div>
 
-      {/* ── Asset tiles ── */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-3">
+      {/* ── Filter chips ──────────────────────────── */}
+      <div
+        className="flex gap-2 overflow-x-auto"
+        style={{ marginLeft: -4, marginRight: -4, padding: '0 4px', scrollbarWidth: 'none' }}
+      >
         {[
-          { label: 'Bank', value: netWorthData.breakdown.bankBalance, icon: '🏦' },
-          { label: 'Mutual Funds', value: netWorthData.breakdown.mfValue, icon: '📈' },
-          { label: 'Stocks', value: netWorthData.breakdown.stockValue, icon: '📊', tone: 'positive' },
-          { label: 'Retirement', value: netWorthData.breakdown.retirementValue || 0, icon: '🏛️', tone: 'positive' },
-          { label: 'CC Debt', value: netWorthData.breakdown.ccDebt, icon: '💳', tone: 'negative' },
-          { label: 'Loans', value: netWorthData.breakdown.loanOutstanding || 0, icon: '🏠', tone: 'negative' },
-        ].map(({ label, value, icon, tone }) => (
-          <div key={label} className="asset-tile">
-            <div className="tile-label">{icon} {label}</div>
-            <div className={`tile-value ${tone || ''}`}>
-              {privacyMode ? '••••' : formatINR(Math.abs(value))}
-            </div>
-          </div>
+          { id: 'all',    label: 'All' },
+          { id: 'bank',   label: 'Bank' },
+          { id: 'cards',  label: 'Credit Cards' },
+          { id: 'invest', label: 'Investments' },
+        ].map(t => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => setFilterTab(t.id)}
+            className={`chip ${filterTab === t.id ? 'chip-active' : ''}`}
+            style={{ flexShrink: 0 }}
+          >
+            {filterTab === t.id && <span>✓</span>}
+            {t.label} ({counts[t.id]})
+          </button>
         ))}
       </div>
 
-      {/* ── Monthly snapshot row (income/expense/savings) ── */}
-      <div className="grid grid-cols-3 gap-2 md:gap-3">
-        <MonthStat icon="↑" label="Income" value={income} privacyMode={privacyMode} tone="positive" />
-        <MonthStat icon="↓" label="Expenses" value={expenses} privacyMode={privacyMode} tone="negative" />
-        <MonthStat icon="◆" label="Saved" value={balance} privacyMode={privacyMode} tone={balance >= 0 ? 'positive' : 'negative'} />
+      {/* ── Asset cards (Money Split tinted style) ── */}
+      {filteredTiles.length > 0 ? (
+        <section>
+          <div className="section-header">
+            <span className="section-title">
+              {filterTab === 'all' ? 'Assets' :
+               filterTab === 'bank' ? 'Bank' :
+               filterTab === 'cards' ? 'Credit Cards' : 'Investments'}
+            </span>
+            <span className="section-count">{filteredTiles.length} {filteredTiles.length === 1 ? 'account' : 'accounts'}</span>
+          </div>
+          <div
+            className="flex gap-3 overflow-x-auto"
+            style={{ marginLeft: -4, marginRight: -4, padding: '0 4px 4px', scrollbarWidth: 'none' }}
+          >
+            {filteredTiles.map(tile => (
+              <AssetTile key={tile.id} tile={tile} />
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {/* ── Monthly stats: 3 chips ──────────────────── */}
+      <div className="grid grid-cols-3 gap-3">
+        <MiniStat label="Income" value={income} tone="income" icon="↑" />
+        <MiniStat label="Spent"  value={expenses} tone="expense" icon="↓" />
+        <MiniStat label="Saved"  value={balance} tone={balance >= 0 ? 'income' : 'expense'} icon="◆" />
       </div>
 
-      {/* ── Charts row ── */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-5">
-        {/* Area chart */}
-        <div className="card md:col-span-2 p-3 md:p-5">
-          <div className="flex items-baseline justify-between mb-3">
-            <h3 className="heading" style={{ fontSize: 18 }}>Monthly flow</h3>
-            <span className="label-mono" style={{ fontSize: 10 }}>— Last 6 months</span>
-          </div>
+      {/* ── Charts: 6-month flow ───────────────────── */}
+      <section>
+        <div className="section-header">
+          <span className="section-title">Monthly Flow</span>
+          <span className="section-count">Last 6 months</span>
+        </div>
+        <div className="card" style={{ padding: 14 }}>
           <ResponsiveContainer width="100%" height={180}>
-            <AreaChart data={monthlyData} margin={{ top: 10, right: 0, bottom: 0, left: 0 }}>
+            <AreaChart data={monthlyData} margin={{ top: 8, right: 4, bottom: 0, left: -10 }}>
               <defs>
-                <linearGradient id="incomeGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#34d399" stopOpacity={0.35} />
-                  <stop offset="100%" stopColor="#34d399" stopOpacity={0} />
+                <linearGradient id="incGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#10B981" stopOpacity={0.3}/>
+                  <stop offset="100%" stopColor="#10B981" stopOpacity={0}/>
                 </linearGradient>
-                <linearGradient id="expenseGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#fbbf24" stopOpacity={0.3} />
-                  <stop offset="100%" stopColor="#fbbf24" stopOpacity={0} />
+                <linearGradient id="expGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#5856D6" stopOpacity={0.25}/>
+                  <stop offset="100%" stopColor="#5856D6" stopOpacity={0}/>
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
-              <XAxis dataKey="month" tick={{ fill: 'var(--text-muted)', fontSize: 10, fontFamily: 'var(--font-mono)' }} axisLine={false} tickLine={false} />
-              <YAxis
-                tick={{ fill: 'var(--text-muted)', fontSize: 9, fontFamily: 'var(--font-mono)' }}
-                axisLine={false} tickLine={false}
-                tickFormatter={v => formatShortINR(v)}
-                width={38}
-              />
-              <Tooltip content={<CustomTooltip />} />
-              <Area type="monotone" dataKey="income" stroke="#34d399" strokeWidth={2} fill="url(#incomeGrad)" name="Income" />
-              <Area type="monotone" dataKey="expense" stroke="#fbbf24" strokeWidth={2} fill="url(#expenseGrad)" name="Expense" />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(15,26,46,0.04)" />
+              <XAxis dataKey="month" tick={{ fill: 'var(--text-muted)', fontSize: 11, fontWeight: 600 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fill: 'var(--text-light)', fontSize: 10 }} axisLine={false} tickLine={false}
+                tickFormatter={v => shortINR(v)} width={42} />
+              <Tooltip
+                contentStyle={{ background: 'var(--bg-surface)', border: 'none', borderRadius: 12, boxShadow: '0 4px 20px rgba(0,0,0,0.08)', fontSize: 12 }}
+                formatter={v => formatINR(v)} />
+              <Area type="monotone" dataKey="income" stroke="#10B981" strokeWidth={2.5} fill="url(#incGrad)" name="Income" />
+              <Area type="monotone" dataKey="expense" stroke="#5856D6" strokeWidth={2.5} fill="url(#expGrad)" name="Expense" />
             </AreaChart>
           </ResponsiveContainer>
         </div>
+      </section>
 
-        {/* Pie: categories */}
-        <div className="card p-3 md:p-5">
-          <div className="flex items-baseline justify-between mb-2">
-            <h3 className="heading" style={{ fontSize: 18 }}>Categories</h3>
-            <span className="label-mono" style={{ fontSize: 10 }}>— This Month</span>
-          </div>
-          {pieData.length > 0 ? (
-            <>
-              <div className="flex justify-center mb-3">
-                <div className="relative w-36 h-36">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie data={pieData} cx="50%" cy="50%" innerRadius={42} outerRadius={66} paddingAngle={3} dataKey="value" stroke="none">
-                        {pieData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                      </Pie>
-                      <Tooltip formatter={(v) => formatINR(v)}
-                        contentStyle={{ background: 'var(--bg-surface)', border: '1px solid var(--border-accent)', borderRadius: 12, color: 'var(--text-primary)' }} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                    <span className="font-display" style={{ fontSize: 18, fontWeight: 400, color: 'var(--text-primary)' }}>
-                      {privateValue(expenses, privacyMode, formatINR)}
-                    </span>
-                    <span className="label-mono" style={{ fontSize: 9, marginTop: 2 }}>Spent</span>
-                  </div>
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                {pieData.map((d, i) => (
-                  <div key={i} className="flex items-center justify-between" style={{ fontSize: 12 }}>
-                    <span className="flex items-center gap-1.5" style={{ color: 'var(--text-secondary)' }}>
-                      <span style={{ width: 8, height: 8, borderRadius: 4, background: COLORS[i % COLORS.length], display: 'inline-block' }} />
-                      {d.name}
-                    </span>
-                    <span className="font-display" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
-                      {privateValue(d.value, privacyMode, formatINR)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </>
-          ) : (
-            <div className="empty-state" style={{ padding: '24px 0' }}>
-              <div className="emoji">🌱</div>
-              <p className="message" style={{ fontSize: 15 }}>No expenses yet.</p>
-            </div>
-          )}
-        </div>
-      </div>
+      {/* ── Paycheck Flow Sankey ───────────────────── */}
+      {pieData.length > 0 && income > 0 && (
+        <PaycheckFlowChart income={income} pieData={pieData} />
+      )}
 
-      {/* ── Recent Activity ── */}
+      {/* ── Recent Activity (date-grouped) ────────── */}
       <section>
-        <div className="flex items-baseline justify-between mb-3">
-          <h3 className="heading" style={{ fontSize: 19 }}>Recent Activity</h3>
-          <Link to="/transactions" className="btn btn-ghost" style={{ padding: '4px 8px', fontSize: 12 }}>
+        <div className="section-header">
+          <span className="section-title">Recent Activity</span>
+          <Link to="/transactions" className="section-count" style={{ color: 'var(--primary)', fontWeight: 700 }}>
             View All →
           </Link>
         </div>
-        {recent.length > 0 ? (
-          <div className="txn-list">
-            {recent.map(tx => {
-              const cat = getCategory(tx.categoryId)
-              const isIncome = tx.type === 'income'
-              const sign = isIncome ? '+' : '\u2212'
-              return (
-                <div key={tx.id} className="txn tr-hover cursor-pointer" onClick={() => setEditTx(tx)}>
-                  <div className="txn-ico">{cat?.icon || '💳'}</div>
-                  <div className="txn-info">
-                    <div className="txn-name">{tx.description || cat?.name}</div>
-                    <div className="txn-meta">{formatDateEditorial(tx.date).replace(/ · \d{2}$/, '')} · {cat?.name || 'Other'}</div>
-                  </div>
-                  <div className={`txn-amt ${isIncome ? 'up' : 'down'}`}>
-                    {privacyMode ? '••••' : `${sign}${formatINR(tx.amount).replace(/^[+\u2212-]/, '')}`}
-                  </div>
+        {recentGrouped.length > 0 ? (
+          <div className="space-y-1">
+            {recentGrouped.map(group => (
+              <div key={group.key}>
+                <div className="date-group">
+                  <span className="group-label">{group.label}</span>
+                  {group.total !== 0 && (
+                    <span className="group-total"
+                      style={{ color: group.total >= 0 ? 'var(--success)' : 'var(--danger)' }}>
+                      {(group.total > 0 ? '+' : '−') + formatINR(Math.abs(group.total)).replace(/^[+−-]/, '')}
+                    </span>
+                  )}
                 </div>
-              )
-            })}
+                <div className="txn-list">
+                  {group.items.map(tx => {
+                    const cat = getCategory(tx.categoryId)
+                    const isIncome = tx.type === 'income'
+                    const isTransfer = tx.type === 'transfer'
+                    const sign = isIncome ? '+' : isTransfer ? '↔' : '−'
+                    return (
+                      <div key={tx.id} className="txn tr-hover" style={{ cursor: 'pointer' }} onClick={() => setEditTx(tx)}>
+                        <div className="txn-ico">{cat?.icon || '💳'}</div>
+                        <div className="txn-info">
+                          <div className="txn-name">{tx.description || cat?.name}</div>
+                          <div className="txn-meta">{formatDayMonth(tx.date)} · {cat?.name || 'Other'}</div>
+                        </div>
+                        <div
+                          className={`txn-amt ${isIncome ? 'up' : isTransfer ? '' : 'down'}`}
+                          style={{ color: isTransfer ? 'var(--info)' : undefined }}
+                        >
+                          {sign}{formatINR(tx.amount).replace(/^[+−-]/, '')}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
         ) : (
-          <div className="glass empty-state">
+          <div className="card empty-state">
             <div className="emoji">🌱</div>
             <p className="message">No activity yet.</p>
             <p className="hint">Tap + to add your first transaction.</p>
@@ -281,19 +374,17 @@ export default function Dashboard() {
         )}
       </section>
 
-      {/* ── Insights ── */}
+      {/* ── Insights ────────────────────────────────── */}
       {insights.length > 0 && (
         <section>
-          <div className="flex items-baseline justify-between mb-3">
-            <h3 className="heading" style={{ fontSize: 19 }}>
-              <em style={{ fontStyle: 'italic', color: 'var(--gold)', fontWeight: 400 }}>Insights</em>
-            </h3>
-            <Link to="/ai-insights" className="btn btn-ghost" style={{ padding: '4px 8px', fontSize: 12 }}>
+          <div className="section-header">
+            <span className="section-title">Insights</span>
+            <Link to="/ai-insights" className="section-count" style={{ color: 'var(--primary)', fontWeight: 700 }}>
               All →
             </Link>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {insights.slice(0, 4).map(i => <InsightCard key={i.id} insight={i} />)}
+          <div className="space-y-3">
+            {insights.slice(0, 3).map(i => <InsightCard key={i.id} insight={i} />)}
           </div>
         </section>
       )}
@@ -303,16 +394,150 @@ export default function Dashboard() {
   )
 }
 
-function MonthStat({ icon, label, value, privacyMode, tone }) {
-  const color = tone === 'positive' ? 'var(--emerald)' : tone === 'negative' ? 'var(--danger)' : 'var(--text-primary)'
+// ── Asset Tile (pastel, Money Split style) ──────────────────────────
+function AssetTile({ tile }) {
   return (
-    <div className="asset-tile" style={{ padding: 14 }}>
-      <div className="tile-label">
-        <span style={{ color }}>{icon}</span> {label}
+    <div
+      className={`tile tile-${tile.kind}`}
+      style={{
+        flex: '0 0 76%',
+        maxWidth: 320,
+        minWidth: 260,
+      }}
+    >
+      <div className="flex items-start gap-3">
+        <div className="tile-icon">{tile.icon}</div>
+        <div className="flex-1 min-w-0">
+          <p style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
+            {tile.title}
+          </p>
+          {tile.sub && (
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 500, marginTop: 2 }}>
+              {tile.sub}
+            </p>
+          )}
+        </div>
       </div>
-      <div className="tile-value" style={{ color }}>
-        {privacyMode ? '••••' : formatINR(value)}
+      <div className="mt-4">
+        <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>
+          {tile.labelText}
+        </p>
+        <div style={{ marginTop: 8 }}>
+          <ViewBalance value={formatINR(tile.value)} size="md" />
+        </div>
+        {tile.statusLabel && (
+          <span className="chip-success" style={{ marginTop: 12, padding: '4px 10px', fontSize: 11 }}>
+            {tile.statusLabel}
+          </span>
+        )}
       </div>
     </div>
+  )
+}
+
+// ── Mini stat for monthly summary ──────────────────────────────────
+function MiniStat({ label, value, tone, icon }) {
+  return (
+    <div className="card" style={{ padding: 14 }}>
+      <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+        {icon} {label}
+      </p>
+      <p
+        style={{
+          fontSize: 18,
+          fontWeight: 800,
+          letterSpacing: '-0.02em',
+          color: tone === 'income' ? 'var(--success)' : tone === 'expense' ? 'var(--danger)' : 'var(--text-primary)',
+          marginTop: 6,
+        }}
+      >
+        {formatINR(value)}
+      </p>
+    </div>
+  )
+}
+
+// ── Paycheck Flow Sankey ───────────────────────────────────────────
+function PaycheckFlowChart({ income, pieData }) {
+  const data = useMemo(() => {
+    const totalSpent = pieData.reduce((s, p) => s + p.value, 0)
+    const saved = Math.max(0, income - totalSpent)
+    const nodes = [
+      { name: 'Income' },
+      ...pieData.map(p => ({ name: p.name })),
+      ...(saved > 0 ? [{ name: 'Saved' }] : []),
+    ]
+    const links = [
+      ...pieData.map((p, i) => ({ source: 0, target: i + 1, value: p.value })),
+      ...(saved > 0 ? [{ source: 0, target: nodes.length - 1, value: saved }] : []),
+    ]
+    return { nodes, links, saved }
+  }, [income, pieData])
+
+  return (
+    <section>
+      <div className="section-header">
+        <span className="section-title">Paycheck Flow</span>
+        <span className="section-count">This month</span>
+      </div>
+      <div className="card" style={{ padding: 14 }}>
+        <ResponsiveContainer width="100%" height={Math.max(220, pieData.length * 38)}>
+          <Sankey
+            data={data}
+            node={<SankeyNode />}
+            link={<SankeyLink />}
+            nodePadding={20}
+            nodeWidth={6}
+            margin={{ left: 0, right: 100, top: 6, bottom: 6 }}
+          >
+            <Tooltip
+              formatter={v => formatINR(v)}
+              contentStyle={{ background: 'var(--bg-surface)', border: 'none', borderRadius: 12, boxShadow: '0 4px 20px rgba(0,0,0,0.08)', fontSize: 12 }}
+            />
+          </Sankey>
+        </ResponsiveContainer>
+      </div>
+    </section>
+  )
+}
+
+function SankeyNode({ x, y, width, height, index, payload }) {
+  const isFirst = index === 0
+  const fill = isFirst ? '#5856D6' : SANKEY_COLORS[(index - 1) % SANKEY_COLORS.length]
+  return (
+    <Layer>
+      <Rectangle x={x} y={y} width={width} height={height} fill={fill} radius={[3,3,3,3]} />
+      <text
+        x={x + width + 6}
+        y={y + height / 2}
+        textAnchor="start"
+        dominantBaseline="middle"
+        style={{ fontSize: 11, fill: 'var(--text-primary)', fontWeight: 700 }}
+      >
+        {payload.name}
+      </text>
+      <text
+        x={x + width + 6}
+        y={y + height / 2 + 13}
+        textAnchor="start"
+        dominantBaseline="middle"
+        style={{ fontSize: 10, fill: 'var(--text-muted)', fontWeight: 600 }}
+      >
+        {formatINR(payload.value)}
+      </text>
+    </Layer>
+  )
+}
+
+function SankeyLink({ sourceX, sourceY, sourceControlX, targetControlX, targetX, targetY, linkWidth, index }) {
+  const fill = SANKEY_COLORS[index % SANKEY_COLORS.length]
+  return (
+    <path
+      d={`M${sourceX},${sourceY}C${sourceControlX},${sourceY} ${targetControlX},${targetY} ${targetX},${targetY}`}
+      fill="none"
+      stroke={fill}
+      strokeWidth={Math.max(1, linkWidth)}
+      strokeOpacity={0.35}
+    />
   )
 }
