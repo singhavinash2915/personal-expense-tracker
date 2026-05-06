@@ -1,11 +1,16 @@
 import { useEffect, useRef } from 'react'
 
-const colorMap = {
-  'text-rose-400':    'var(--danger)',
-  'text-amber-400':   'var(--gold)',
-  'text-emerald-400': 'var(--emerald)',
-  'text-cyan-400':    'var(--emerald)',
-  'text-violet-400':  'var(--gold)',
+// Map old color classes → tinted CSS class names for icon backgrounds
+const TONE = {
+  'text-rose-400':    { bg: 'var(--danger-bg)',   color: 'var(--danger)'  },
+  'text-amber-400':   { bg: 'var(--warning-bg)',  color: 'var(--warning)' },
+  'text-emerald-400': { bg: 'var(--success-bg)',  color: 'var(--success)' },
+  'text-cyan-400':    { bg: 'var(--info-bg)',     color: 'var(--info)'    },
+  'text-violet-400':  { bg: 'var(--primary-light)', color: 'var(--primary)' },
+}
+
+function defaultTone() {
+  return { bg: 'var(--primary-light)', color: 'var(--primary)' }
 }
 
 export default function NotificationPanel({ open, onClose, notifications = [] }) {
@@ -16,33 +21,27 @@ export default function NotificationPanel({ open, onClose, notifications = [] })
     function handleClick(e) {
       if (panelRef.current && !panelRef.current.contains(e.target)) onClose()
     }
-    const timer = setTimeout(() => document.addEventListener('mousedown', handleClick), 10)
-    return () => {
-      clearTimeout(timer)
-      document.removeEventListener('mousedown', handleClick)
-    }
+    const t = setTimeout(() => document.addEventListener('mousedown', handleClick), 10)
+    return () => { clearTimeout(t); document.removeEventListener('mousedown', handleClick) }
   }, [open, onClose])
 
   if (!open) return null
-  const unreadCount = notifications.filter(n => !n.read).length
+  const unread = notifications.filter(n => !n.read).length
 
   return (
     <div
       ref={panelRef}
       style={{
         position: 'fixed',
-        top: '64px',
-        right: '16px',
-        width: '360px',
+        top: 64,
+        right: 16,
+        width: 360,
         maxWidth: 'calc(100vw - 32px)',
-        maxHeight: '480px',
-        background: 'rgba(10,20,15,0.95)',
-        backdropFilter: 'blur(24px)',
-        WebkitBackdropFilter: 'blur(24px)',
-        border: '1px solid var(--border-default)',
+        maxHeight: 480,
+        background: 'var(--bg-surface)',
         borderRadius: 'var(--r-xl)',
-        boxShadow: '0 25px 50px -12px rgba(0,0,0,0.7)',
-        overflowY: 'auto',
+        boxShadow: '0 12px 40px rgba(15,26,46,0.10), 0 0 0 1px var(--border-subtle)',
+        overflow: 'hidden',
         zIndex: 50,
         display: 'flex',
         flexDirection: 'column',
@@ -51,56 +50,69 @@ export default function NotificationPanel({ open, onClose, notifications = [] })
       {/* Header */}
       <div
         style={{
+          padding: '16px 20px',
+          borderBottom: '1px solid var(--border-subtle)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: '14px 18px',
-          borderBottom: '1px solid var(--border-subtle)',
-          position: 'sticky',
-          top: 0,
-          background: 'rgba(10,20,15,0.95)',
-          zIndex: 1,
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div className="label-mono" style={{ fontSize: 10 }}>— Inbox</div>
-          {unreadCount > 0 && (
-            <span className="chip-gold" style={{ padding: '2px 8px', fontSize: 10 }}>
-              {unreadCount > 9 ? '9+' : unreadCount}
+          <span style={{
+            fontSize: 13,
+            fontWeight: 800,
+            color: 'var(--primary)',
+            letterSpacing: '0.10em',
+            textTransform: 'uppercase',
+          }}>
+            Inbox
+          </span>
+          {unread > 0 && (
+            <span
+              style={{
+                background: 'var(--primary)',
+                color: 'white',
+                fontSize: 11,
+                fontWeight: 700,
+                padding: '2px 8px',
+                borderRadius: 999,
+              }}
+            >
+              {unread > 9 ? '9+' : unread}
             </span>
           )}
         </div>
       </div>
 
       {/* Body */}
-      <div style={{ padding: '8px 0', flex: 1 }}>
+      <div style={{ padding: '6px 0', flex: 1, overflowY: 'auto' }}>
         {notifications.length === 0 ? (
-          <div className="empty-state">
+          <div className="empty-state" style={{ padding: '40px 16px' }}>
             <div className="emoji">🔔</div>
-            <p className="message">All clear.</p>
+            <p className="message">All clear</p>
             <p className="hint">No notifications right now.</p>
           </div>
         ) : (
-          notifications.map((notif, idx) => {
-            const titleColor = colorMap[notif.color] || 'var(--gold)'
+          notifications.map((n, idx) => {
+            const tone = TONE[n.color] || defaultTone()
             return (
-              <div key={notif.id}>
+              <div key={n.id}>
                 <div
                   style={{
                     display: 'flex',
                     alignItems: 'flex-start',
                     gap: 12,
-                    padding: '12px 16px',
-                    borderLeft: notif.read ? '3px solid transparent' : '3px solid var(--gold)',
-                    background: notif.read ? 'transparent' : 'var(--gold-dim)',
+                    padding: '12px 18px',
+                    background: n.read ? 'transparent' : tone.bg,
+                    transition: 'background 0.2s',
+                    cursor: 'default',
                   }}
                 >
                   <div
                     style={{
-                      width: 36, height: 36,
+                      width: 38, height: 38,
                       borderRadius: 'var(--r-md)',
-                      background: 'rgba(255,255,255,0.05)',
-                      border: '1px solid var(--border-subtle)',
+                      background: tone.bg,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -108,36 +120,41 @@ export default function NotificationPanel({ open, onClose, notifications = [] })
                       flexShrink: 0,
                     }}
                   >
-                    {notif.icon}
+                    {n.icon}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginBottom: 2 }}>
-                      <span
-                        style={{
-                          fontFamily: 'var(--font-display)',
-                          fontStyle: 'italic',
-                          fontSize: 14,
-                          fontWeight: 500,
-                          color: titleColor,
-                          letterSpacing: '-0.01em',
-                        }}
-                      >
-                        {notif.title}
+                      <span style={{
+                        fontSize: 14,
+                        fontWeight: 700,
+                        color: 'var(--text-primary)',
+                        letterSpacing: '-0.01em',
+                      }}>
+                        {n.title}
                       </span>
-                      <span
-                        className="label-mono"
-                        style={{ fontSize: 9, whiteSpace: 'nowrap', flexShrink: 0, marginTop: 1 }}
-                      >
-                        {notif.time}
+                      <span style={{
+                        fontSize: 10,
+                        fontWeight: 600,
+                        color: 'var(--text-light)',
+                        whiteSpace: 'nowrap',
+                        flexShrink: 0,
+                        marginTop: 2,
+                      }}>
+                        {n.time}
                       </span>
                     </div>
-                    <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                      {notif.message}
+                    <p style={{
+                      fontSize: 12,
+                      color: 'var(--text-secondary)',
+                      lineHeight: 1.5,
+                      fontWeight: 500,
+                    }}>
+                      {n.message}
                     </p>
                   </div>
                 </div>
                 {idx < notifications.length - 1 && (
-                  <div style={{ height: 1, background: 'var(--border-subtle)', margin: '0 16px' }} />
+                  <div style={{ height: 1, background: 'var(--border-subtle)', margin: '0 18px' }} />
                 )}
               </div>
             )

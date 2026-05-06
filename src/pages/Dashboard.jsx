@@ -34,6 +34,7 @@ export default function Dashboard() {
   const { state, getCategory, getMonthlyStats } = useApp()
   const [editTx, setEditTx] = useState(null)
   const [filterTab, setFilterTab] = useState('all') // all | bank | cards | invest
+  const privacy = state.privacyMode
 
   const month = currentMonthYear()
   const { income, expenses, balance } = getMonthlyStats(month)
@@ -195,22 +196,11 @@ export default function Dashboard() {
             <div className="section-title" style={{ marginBottom: 8 }}>
               Total Net Worth
             </div>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-              <span style={{ color: 'var(--primary)', fontWeight: 700, fontSize: 22 }}>₹</span>
-              <span
-                style={{
-                  fontSize: 36,
-                  fontWeight: 800,
-                  letterSpacing: '-0.025em',
-                  color: 'var(--text-primary)',
-                  lineHeight: 1.05,
-                }}
-              >
-                <AnimatedNumber
-                  value={netWorthData.netWorth}
-                  formatter={v => new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(v)}
-                />
-              </span>
+            <div style={{ marginTop: 6 }}>
+              <ViewBalance
+                value={`₹${new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(netWorthData.netWorth)}`}
+                size="lg"
+              />
             </div>
             <div style={{ marginTop: 10 }}>
               <span className={trendUp ? 'chip-success' : 'chip-danger'} style={{ padding: '4px 10px', fontSize: 11 }}>
@@ -332,7 +322,7 @@ export default function Dashboard() {
               <div key={group.key}>
                 <div className="date-group">
                   <span className="group-label">{group.label}</span>
-                  {group.total !== 0 && (
+                  {group.total !== 0 && !privacy && (
                     <span className="group-total"
                       style={{ color: group.total >= 0 ? 'var(--success)' : 'var(--danger)' }}>
                       {(group.total > 0 ? '+' : '−') + formatINR(Math.abs(group.total)).replace(/^[+−-]/, '')}
@@ -356,7 +346,7 @@ export default function Dashboard() {
                           className={`txn-amt ${isIncome ? 'up' : isTransfer ? '' : 'down'}`}
                           style={{ color: isTransfer ? 'var(--info)' : undefined }}
                         >
-                          {sign}{formatINR(tx.amount).replace(/^[+−-]/, '')}
+                          {privacy ? '••••' : `${sign}${formatINR(tx.amount).replace(/^[+−-]/, '')}`}
                         </div>
                       </div>
                     )
@@ -442,17 +432,12 @@ function MiniStat({ label, value, tone, icon }) {
       <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
         {icon} {label}
       </p>
-      <p
-        style={{
-          fontSize: 18,
-          fontWeight: 800,
-          letterSpacing: '-0.02em',
-          color: tone === 'income' ? 'var(--success)' : tone === 'expense' ? 'var(--danger)' : 'var(--text-primary)',
-          marginTop: 6,
-        }}
-      >
-        {formatINR(value)}
-      </p>
+      <div style={{ marginTop: 6 }}>
+        <ViewBalance
+          value={formatINR(value)}
+          size="md"
+        />
+      </div>
     </div>
   )
 }

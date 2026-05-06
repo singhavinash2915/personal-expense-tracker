@@ -25,9 +25,10 @@ const initialState = {
   accounts:      loadFromStorage('ef_accounts',      SAMPLE_ACCOUNTS),
   savingsGoals:  loadFromStorage('ef_savings_goals', []),
   splits:        loadFromStorage('ef_splits',        []),
-  theme:         loadFromStorage('ef_theme',         'light'),
+  // v2 key: forces light reset for users who had 'dark' saved before the revamp
+  theme:         loadFromStorage('ef_theme_v2',      'light'),
   currency:      loadFromStorage('ef_currency',      'INR'),
-  privacyMode:   false,
+  privacyMode:   loadFromStorage('ef_privacy_mode', true),
   userName:      loadFromStorage('ef_user_name',     ''),
   onboarded:     loadFromStorage('ef_onboarded',     false),
   biometricLock: loadFromStorage('ef_biometric_lock', false),
@@ -466,7 +467,7 @@ export function AppProvider({ children }) {
   useEffect(() => { localStorage.setItem('ef_splits',        JSON.stringify(state.splits)) },        [state.splits])
   useEffect(() => { localStorage.setItem('ef_savings_goals', JSON.stringify(state.savingsGoals)) },  [state.savingsGoals])
   useEffect(() => {
-    localStorage.setItem('ef_theme', JSON.stringify(state.theme))
+    localStorage.setItem('ef_theme_v2', JSON.stringify(state.theme))
     // New design is light-first. Apply 'dark' class only when explicitly dark.
     document.documentElement.classList.toggle('dark', state.theme === 'dark')
     document.documentElement.classList.remove('light')
@@ -476,6 +477,7 @@ export function AppProvider({ children }) {
   useEffect(() => { localStorage.setItem('ef_biometric_lock', JSON.stringify(state.biometricLock)) }, [state.biometricLock])
   useEffect(() => { localStorage.setItem('ef_loans', JSON.stringify(state.loans || [])) }, [state.loans])
   useEffect(() => { localStorage.setItem('ef_retirement', JSON.stringify(state.retirementAccounts || [])) }, [state.retirementAccounts])
+  useEffect(() => { localStorage.setItem('ef_privacy_mode', JSON.stringify(state.privacyMode)) }, [state.privacyMode])
 
   // Derived helpers
   const getCategory = (id) => state.categories.find(c => c.id === id)

@@ -5,6 +5,7 @@ import { useApp } from '../context/AppContext'
 import { formatINR } from '../lib/utils'
 import { groupTransactionsByDay } from '../lib/groupByDate'
 import TransactionModal from '../components/ui/TransactionModal'
+import ViewBalance from '../components/ui/ViewBalance'
 
 const TYPES = [
   { id: 'All',      label: 'All' },
@@ -17,6 +18,7 @@ export default function Transactions() {
   const { state, dispatch, getCategory } = useApp()
   const location = useLocation()
   const accounts = state.accounts || []
+  const privacy = state.privacyMode
 
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('All')
@@ -135,7 +137,7 @@ export default function Transactions() {
                   · {group.count} {group.count === 1 ? 'item' : 'items'}
                 </span>
               </div>
-              {group.total !== 0 && (
+              {group.total !== 0 && !privacy && (
                 <span className="group-total" style={{
                   color: group.total >= 0 ? 'var(--success)' : 'var(--danger)',
                 }}>
@@ -170,7 +172,7 @@ export default function Transactions() {
                         className={`txn-amt ${isIncome ? 'up' : isTransfer ? '' : 'down'}`}
                         style={{ color: isTransfer ? 'var(--info)' : undefined }}
                       >
-                        {sign}{formatINR(tx.amount).replace(/^[+−-]/, '')}
+                        {privacy ? '••••' : `${sign}${formatINR(tx.amount).replace(/^[+−-]/, '')}`}
                       </span>
                       <button
                         onClick={e => { e.stopPropagation(); setConfirmDelete(tx.id) }}
@@ -219,16 +221,9 @@ function SummaryTile({ label, value, tone }) {
       <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
         {label}
       </p>
-      <p style={{
-        fontSize: 16,
-        fontWeight: 800,
-        marginTop: 6,
-        color: tone === 'income' ? 'var(--success)' :
-               tone === 'expense' ? 'var(--danger)' : 'var(--info)',
-        letterSpacing: '-0.01em',
-      }}>
-        {formatINR(value)}
-      </p>
+      <div style={{ marginTop: 6 }}>
+        <ViewBalance value={formatINR(value)} size="sm" />
+      </div>
     </div>
   )
 }
