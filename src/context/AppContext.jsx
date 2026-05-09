@@ -278,6 +278,8 @@ function reducer(state, action) {
               ...s,
               shares: (s.shares || 0) + shares,
               avgCost: ((s.shares || 0) * (s.avgCost || 0) + shares * price) / ((s.shares || 0) + shares || 1),
+              // Stamp firstBuyDate on first buy — used later for STCG/LTCG calculation
+              firstBuyDate: s.firstBuyDate || (date || new Date().toISOString().slice(0, 10)),
             }
           : s
       )
@@ -288,29 +290,101 @@ function reducer(state, action) {
         stocks: updatedStocks,
       }
     }
-    // Compound: sell stock
+    // Compound: sell stock — splits into 2 linked transactions:
+    //   1. Cost-basis transfer: stock holding -> bank (= shares * avgCost)
+    //   2. Capital gain/loss: income (i6 STCG / i7 LTCG) or expense (c12 Capital Loss)
     case 'SELL_STOCK': {
       const { stockId, shares, price, toAccountId, date } = action.payload
-      const amount = shares * price
-      const tx = {
+      const stock = state.stocks.find(s => s.id === stockId)
+      if (!stock) return state
+
+      const sellDate = date || new Date().toISOString().slice(0, 10)
+      const avgCost = stock.avgCost || 0
+      const proceeds = shares * price                  // total cash received
+      const costBasis = shares * avgCost               // original investment
+      const gainLoss = proceeds - costBasis            // can be negative
+
+      // Determine STCG vs LTCG (Indian equity: > 12 months = LTCG)
+      const heldFromISO = stock.firstBuyDate || stock.createdAt || sellDate
+      const heldDays = Math.max(0, Math.round(
+        (new Date(sellDate) - new Date(heldFromISO)) / (24 * 60 * 60 * 1000)
+      ))
+      const isLTCG = heldDays >= 365
+      const gainCategoryId = isLTCG ? 'i7' : 'i6'      // STCG=i6, LTCG=i7
+
+      // Tx 1: cost-basis transfer (stock -> bank)
+      const transferTx = {
         id: generateId(),
         type: 'transfer',
-        amount,
+        amount: costBasis,
         accountId: stockId,
         toAccountId,
-        description: `Stock Sell — ${state.stocks.find(s => s.id === stockId)?.symbol || 'Equity'}`,
-        date: date || new Date().toISOString().slice(0, 10),
+        description: `Stock Sell — ${stock.symbol || 'Equity'} (cost basis)`,
+        date: sellDate,
         categoryId: 'tr4',
         source: 'redeem',
         linkedStockId: stockId,
+        appliedToBalance: true,
       }
-      const updatedStocks = state.stocks.map(s =>
-        s.id === stockId ? { ...s, shares: Math.max(0, (s.shares || 0) - shares) } : s
-      )
+
+      // Tx 2: capital gain (income) or capital loss (expense)
+      const gainTx = gainLoss >= 0
+        ? {
+            id: generateId(),
+            type: 'income',
+            amount: gainLoss,
+            accountId: toAccountId,
+            description: `${isLTCG ? 'LTCG' : 'STCG'} on ${stock.symbol || 'Equity'} — ${shares} shares`,
+            date: sellDate,
+            categoryId: gainCategoryId,
+            source: 'capital-gain',
+            linkedStockId: stockId,
+            gainType: isLTCG ? 'LTCG' : 'STCG',
+            gainAmount: gainLoss,
+            heldDays,
+            appliedToBalance: true,
+          }
+        : {
+            id: generateId(),
+            type: 'expense',
+            amount: Math.abs(gainLoss),
+            accountId: toAccountId,
+            description: `Capital Loss on ${stock.symbol || 'Equity'} — ${shares} shares`,
+            date: sellDate,
+            categoryId: 'c12',
+            source: 'capital-loss',
+            linkedStockId: stockId,
+            gainType: 'LOSS',
+            gainAmount: gainLoss,
+            heldDays,
+            appliedToBalance: true,
+          }
+
+      // Apply both txns to bank balance:
+      //   transfer: from stockId (no real account) to toAccountId — credit the bank
+      //   gain: income credits bank further
+      //   loss: expense debits bank
+      let nextAccounts = state.accounts
+      // Treat the transfer tx as cash credit to toAccountId
+      nextAccounts = applyTxToAccounts(nextAccounts, { ...transferTx, type: 'income', accountId: toAccountId, amount: costBasis }, 1)
+      nextAccounts = applyTxToAccounts(nextAccounts, gainTx, 1)
+
+      // Track realized gain on stock + reduce shares (keep row for history)
+      const updatedStocks = state.stocks.map(s => {
+        if (s.id !== stockId) return s
+        const realized = (s.realizedGain || 0) + gainLoss
+        return {
+          ...s,
+          shares: Math.max(0, (s.shares || 0) - shares),
+          realizedGain: realized,
+          lastSoldAt: sellDate,
+        }
+      })
+
       return {
         ...state,
-        transactions: [tx, ...state.transactions],
-        accounts: applyTxToAccounts(state.accounts, { ...tx, type: 'income', amount }, 1),
+        transactions: [gainTx, transferTx, ...state.transactions],
+        accounts: nextAccounts,
         stocks: updatedStocks,
       }
     }

@@ -592,7 +592,19 @@ export default function Investments() {
                   {stockData.map(st => (
                     <tr key={st.id} className="tr-hover" style={{ borderBottom: '1px solid rgba(109,40,217,0.08)' }}>
                       <td className="px-4 py-3.5">
-                        <span className="font-bold text-sm text-violet-300">{st.symbol}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-sm text-violet-300">{st.symbol}</span>
+                          {(st.shares || 0) === 0 && (
+                            <span className="chip-success" style={{ padding: '2px 8px', fontSize: 9, fontWeight: 700 }}>
+                              CLOSED
+                            </span>
+                          )}
+                        </div>
+                        {(st.realizedGain != null && st.realizedGain !== 0) && (
+                          <span className="label-mono" style={{ fontSize: 9, color: st.realizedGain > 0 ? 'var(--success)' : 'var(--danger)' }}>
+                            Realized: {st.realizedGain > 0 ? '+' : '−'}{formatINR(Math.abs(st.realizedGain))}
+                          </span>
+                        )}
                       </td>
                       <td className="px-4 py-3.5 text-sm text-white">{st.name}</td>
                       <td className="px-4 py-3.5"><span className="badge-info text-xs">{st.exchange}</span></td>

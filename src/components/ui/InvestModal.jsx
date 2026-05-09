@@ -172,6 +172,63 @@ export default function InvestModal({ asset, action, onClose }) {
             </div>
           </div>
 
+          {/* ── P&L Preview (sell only, stocks only) ─────────── */}
+          {!isBuy && !isMF && computedUnits > 0 && (() => {
+            const avgCost = asset.avgCost || 0
+            const costBasis = computedUnits * avgCost
+            const proceeds = computedAmount
+            const gainLoss = proceeds - costBasis
+            const pct = costBasis > 0 ? (gainLoss / costBasis * 100) : 0
+            const isProfit = gainLoss >= 0
+            const heldFromISO = asset.firstBuyDate || asset.createdAt || date
+            const heldDays = Math.max(0, Math.round(
+              (new Date(date) - new Date(heldFromISO)) / (24 * 60 * 60 * 1000)
+            ))
+            const isLTCG = heldDays >= 365
+            const tag = isProfit ? (isLTCG ? 'LTCG' : 'STCG') : 'LOSS'
+            return (
+              <div
+                className="rounded-2xl p-3"
+                style={{
+                  background: isProfit ? 'var(--success-bg, #d1fae5)' : 'var(--danger-bg, #fee2e2)',
+                  border: '1px solid ' + (isProfit ? 'rgba(16,185,129,0.25)' : 'rgba(239,68,68,0.25)'),
+                }}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span style={{ fontSize: 11, fontWeight: 700, color: isProfit ? 'var(--success)' : 'var(--danger)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                    {isProfit ? `${tag} · Profit` : 'Capital Loss'}
+                  </span>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)' }}>
+                    Held {heldDays}d
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span style={{ color: 'var(--text-secondary)' }}>Cost Basis</span>
+                  <span className="font-display" style={{ color: 'var(--text-primary)' }}>
+                    {formatINR(costBasis)} <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>· avg ₹{avgCost.toFixed(2)}</span>
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm mt-1">
+                  <span style={{ color: 'var(--text-secondary)' }}>Sell Value</span>
+                  <span className="font-display" style={{ color: 'var(--text-primary)' }}>{formatINR(proceeds)}</span>
+                </div>
+                <div className="flex justify-between text-sm mt-1 pt-2" style={{ borderTop: '1px solid rgba(15,26,46,0.06)' }}>
+                  <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
+                    {isProfit ? 'Gain' : 'Loss'}
+                  </span>
+                  <span className="font-display" style={{ fontSize: 18, fontWeight: 800, color: isProfit ? 'var(--success)' : 'var(--danger)' }}>
+                    {isProfit ? '+' : '−'}{formatINR(Math.abs(gainLoss))} ({isProfit ? '+' : ''}{pct.toFixed(1)}%)
+                  </span>
+                </div>
+                {isProfit && (
+                  <p style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 6 }}>
+                    Will be logged as {tag} income · {isLTCG ? '10% tax over ₹1L exemption' : '15% tax (STCG)'}
+                  </p>
+                )}
+              </div>
+            )
+          })()}
+
           <div className="flex gap-2 mt-2">
             <button onClick={onClose} className="btn btn-secondary flex-1">Cancel</button>
             <button onClick={submit} className="btn btn-primary flex-1">
